@@ -21,35 +21,63 @@ export async function upsertUserFromRegistration(registration) {
       INSERT INTO vl_users (
         email,
         full_name,
+        first_name,
+        last_name,
+        member_institution,
+        organization,
+        degree,
+        role_title,
+        specialty,
         constant_contact_contact_id,
         constant_contact_registration_id,
         constant_contact_event_id,
         constant_contact_track_key,
         registration_status,
         registered_at,
-        synced_at
+        synced_at,
+        raw_data
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8::timestamp, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, COALESCE($15::timestamp, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP, $16::jsonb)
       ON CONFLICT (email)
       DO UPDATE SET
         full_name = COALESCE(EXCLUDED.full_name, vl_users.full_name),
+        first_name = COALESCE(EXCLUDED.first_name, vl_users.first_name),
+        last_name = COALESCE(EXCLUDED.last_name, vl_users.last_name),
+        member_institution = COALESCE(EXCLUDED.member_institution, vl_users.member_institution),
+        organization = COALESCE(EXCLUDED.organization, vl_users.organization),
+        degree = COALESCE(EXCLUDED.degree, vl_users.degree),
+        role_title = COALESCE(EXCLUDED.role_title, vl_users.role_title),
+        specialty = COALESCE(EXCLUDED.specialty, vl_users.specialty),
         constant_contact_contact_id = EXCLUDED.constant_contact_contact_id,
         constant_contact_registration_id = EXCLUDED.constant_contact_registration_id,
         constant_contact_event_id = EXCLUDED.constant_contact_event_id,
         constant_contact_track_key = EXCLUDED.constant_contact_track_key,
         registration_status = EXCLUDED.registration_status,
+        registered_at = COALESCE(EXCLUDED.registered_at, vl_users.registered_at),
+        raw_data = CASE
+          WHEN EXCLUDED.raw_data = '{}'::jsonb THEN vl_users.raw_data
+          ELSE EXCLUDED.raw_data
+        END,
         synced_at = CURRENT_TIMESTAMP
       RETURNING *
     `,
     [
       registration.email,
       registration.fullName || null,
+      registration.firstName || null,
+      registration.lastName || null,
+      registration.memberInstitution || null,
+      registration.organization || registration.memberInstitution || null,
+      registration.degree || null,
+      registration.roleTitle || null,
+      registration.specialty || null,
       registration.contactId || null,
       registration.registrationId || null,
       registration.eventId || null,
       registration.trackKey || null,
       registration.registrationStatus || "REGISTERED",
-      registration.registrationTime || null
+      registration.registrationTime || null,
+      JSON.stringify(registration.rawData || {})
     ]
   );
   return result.rows[0];

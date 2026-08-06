@@ -2,6 +2,13 @@ CREATE TABLE IF NOT EXISTS vl_users (
   id BIGSERIAL PRIMARY KEY,
   email TEXT NOT NULL,
   full_name TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  member_institution TEXT,
+  organization TEXT,
+  degree TEXT,
+  role_title TEXT,
+  specialty TEXT,
   constant_contact_contact_id TEXT,
   constant_contact_registration_id TEXT,
   constant_contact_event_id TEXT,
@@ -10,9 +17,19 @@ CREATE TABLE IF NOT EXISTS vl_users (
   registered_at TIMESTAMP,
   synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_login_at TIMESTAMP,
+  raw_data JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (email)
 );
+
+ALTER TABLE vl_users ADD COLUMN IF NOT EXISTS first_name TEXT;
+ALTER TABLE vl_users ADD COLUMN IF NOT EXISTS last_name TEXT;
+ALTER TABLE vl_users ADD COLUMN IF NOT EXISTS member_institution TEXT;
+ALTER TABLE vl_users ADD COLUMN IF NOT EXISTS organization TEXT;
+ALTER TABLE vl_users ADD COLUMN IF NOT EXISTS degree TEXT;
+ALTER TABLE vl_users ADD COLUMN IF NOT EXISTS role_title TEXT;
+ALTER TABLE vl_users ADD COLUMN IF NOT EXISTS specialty TEXT;
+ALTER TABLE vl_users ADD COLUMN IF NOT EXISTS raw_data JSONB NOT NULL DEFAULT '{}'::jsonb;
 
 CREATE TABLE IF NOT EXISTS vl_magic_links (
   id BIGSERIAL PRIMARY KEY,

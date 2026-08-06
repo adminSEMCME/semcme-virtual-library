@@ -91,6 +91,148 @@ function firstPresent(...values) {
   return values.find((value) => value !== undefined && value !== null && String(value).trim() !== "");
 }
 
+function readPath(value, path) {
+  return path.split(".").reduce((current, key) => {
+    if (!current || typeof current !== "object") return undefined;
+    return current[key];
+  }, value);
+}
+
+function fieldLabel(field) {
+  if (!field || typeof field !== "object") return "";
+  return String(
+    field.label ||
+      field.name ||
+      field.question ||
+      field.question_text ||
+      field.text ||
+      field.title ||
+      field.display_name ||
+      field.field_label ||
+      field.custom_field_name ||
+      field.custom_field_id ||
+      field.id ||
+      ""
+  ).trim();
+}
+
+function fieldValue(field) {
+  if (!field || typeof field !== "object") return "";
+  const value =
+    field.value ??
+    field.answer ??
+    field.answer_text ??
+    field.answers ??
+    field.response ??
+    field.response_text ??
+    field.field_value ??
+    field.custom_field_value ??
+    field.selected_value ??
+    field.selected_option ??
+    field.choices ??
+    "";
+
+  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
+  if (value && typeof value === "object") {
+    return String(value.label || value.name || value.value || "").trim();
+  }
+  return String(value || "").trim();
+}
+
+function labelMatches(label, candidates) {
+  const normalized = String(label || "").trim().toLowerCase();
+  if (!normalized) return false;
+  return candidates.some((candidate) => normalized === candidate || normalized.includes(candidate));
+}
+
+function flattenRegistrationFields(record) {
+  const fields = [];
+  const visit = (value, parentLabel = "") => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach((item) => visit(item, parentLabel));
+      return;
+    }
+    if (typeof value !== "object") return;
+
+    const label = fieldLabel(value) || parentLabel;
+    const answer = fieldValue(value);
+    if (label && answer) fields.push({ label, value: answer });
+
+    for (const key of ["custom_fields", "custom_questions", "questions", "answers", "fields", "form_fields", "registration_fields"]) {
+      if (value[key]) visit(value[key], label);
+    }
+  };
+
+  visit(record);
+  return fields;
+}
+
+function findFieldValueByLabel(record, candidates) {
+  const field = flattenRegistrationFields(record).find((entry) => labelMatches(entry.label, candidates));
+  if (field?.value) return field.value;
+
+  const queue = [record];
+  while (queue.length) {
+    const value = queue.shift();
+    if (!value || typeof value !== "object") continue;
+    if (Array.isArray(value)) {
+      queue.push(...value);
+      continue;
+    }
+
+    const label = fieldLabel(value);
+    const answer = fieldValue(value);
+    if (labelMatches(label, candidates) && answer) return answer;
+
+    Object.entries(value).forEach(([key, child]) => {
+      if (labelMatches(key, candidates) && child != null && typeof child !== "object") {
+        queue.unshift({ label: key, value: child });
+      } else {
+        queue.push(child);
+      }
+    });
+  }
+
+  return null;
+}
+
+function flattenRegistrationStrings(value, path = "", strings = []) {
+  if (value == null) return strings;
+  if (typeof value === "string" || typeof value === "number") {
+    const text = String(value).trim();
+    if (text) strings.push({ path, value: text });
+    return strings;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => flattenRegistrationStrings(item, `${path}[${index}]`, strings));
+    return strings;
+  }
+  if (typeof value === "object") {
+    Object.entries(value).forEach(([key, child]) => {
+      flattenRegistrationStrings(child, path ? `${path}.${key}` : key, strings);
+    });
+  }
+  return strings;
+}
+
+function findStringByPath(record, pathCandidates) {
+  const strings = flattenRegistrationStrings(record);
+  const match = strings.find((entry) => {
+    const path = entry.path.toLowerCase();
+    return pathCandidates.some((candidate) => path.includes(candidate));
+  });
+  return match?.value || null;
+}
+
+function findProfileField(record, directPaths, labels, pathCandidates = labels) {
+  for (const path of directPaths) {
+    const value = readPath(record, path);
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return findFieldValueByLabel(record, labels) || findStringByPath(record, pathCandidates);
+}
+
 function mapRegistration(record, program) {
   const email = normalizeEmail(firstPresent(
     record.email,
@@ -114,12 +256,40 @@ function mapRegistration(record, program) {
   return {
     email,
     fullName: fullName || email,
+    firstName: firstName || null,
+    lastName: lastName || null,
+    memberInstitution: findProfileField(
+      record,
+      ["member_institution", "organization", "company_name", "company", "contact.company", "profile.company"],
+      ["semcme member institution", "semcme member organization", "member institution", "member organization", "institution", "organization"]
+    ),
+    organization: findProfileField(
+      record,
+      ["organization", "company_name", "company", "contact.company", "profile.company"],
+      ["organization", "company", "institution"]
+    ),
+    degree: findProfileField(
+      record,
+      ["degree", "designation", "credentials"],
+      ["degree", "credentials", "designation"]
+    ),
+    roleTitle: findProfileField(
+      record,
+      ["role_title", "role", "title", "job_title", "contact.job_title", "profile.job_title"],
+      ["role/title", "role", "title", "job title"]
+    ),
+    specialty: findProfileField(
+      record,
+      ["specialty", "select_specialty"],
+      ["specialty", "select specialty"]
+    ),
     contactId: firstPresent(record.contact_id, record.contact?.contact_id, record.contact?.id),
     registrationId: firstPresent(record.registration_id, record.registrant_id, record.id),
     eventId: program.eventId,
     trackKey: program.trackKey,
     registrationStatus: firstPresent(record.registration_status, record.status) || "REGISTERED",
-    registrationTime: firstPresent(record.registration_time, record.created_at, record.registered_at)
+    registrationTime: firstPresent(record.registration_time, record.created_at, record.registered_at),
+    rawData: record
   };
 }
 
