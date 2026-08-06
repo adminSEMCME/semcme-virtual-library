@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SEMCME Virtual Library Admin</title>
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <main class="admin-shell">
+      <section class="login-card" id="loginView">
+        <p class="eyebrow">Staff Access</p>
+        <h1>Virtual Library Admin</h1>
+        <form id="loginForm">
+          <label>
+            Admin username
+            <input id="username" name="username" autocomplete="username" required />
+          </label>
+          <label>
+            Admin password
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <p class="message error" id="loginMessage"></p>
+          <button class="primary-button" type="submit">Sign in</button>
+        </form>
+      </section>
+
+      <section class="dashboard" id="dashboard" hidden>
+        <header class="dashboard-header">
+          <div>
+            <p class="eyebrow">Staff Dashboard</p>
+            <h1>Virtual Library</h1>
+          </div>
+          <div class="header-actions">
+            <button class="secondary-button" id="refreshButton" type="button">Refresh data</button>
+            <button class="secondary-button" id="importButton" type="button">Import current library</button>
+            <button class="secondary-button" id="signOutButton" type="button">Sign out</button>
+          </div>
+        </header>
+
+        <p class="message" id="dashboardMessage"></p>
+
+        <section class="panel posted-panel">
+          <div class="step-heading">
+            <span>Step 1</span>
+            <div>
+              <h2>Review posted items</h2>
+              <p>This list updates when a section or resource is saved. Click any item to prefill the form below for updating.</p>
+            </div>
+          </div>
+          <div class="posted-list" id="postedList"></div>
+        </section>
+
+        <section class="panel">
+          <div class="step-heading">
+            <span>Step 2</span>
+            <div>
+              <h2>Choose or edit a section</h2>
+              <p>Sections are the main library groups. Use the display order field to reorder sections.</p>
+            </div>
+          </div>
+          <form class="editor-form" id="sectionForm">
+            <label class="primary-select">
+              Select section
+              <select id="sectionSelect"></select>
+            </label>
+            <div class="field-grid">
+              <label>
+                Section name
+                <input id="sectionName" required />
+              </label>
+              <label>
+                Slug
+                <input id="sectionSlug" />
+              </label>
+              <label>
+                Display order
+                <input id="sectionOrder" type="number" min="0" step="1" />
+              </label>
+              <label class="check-field">
+                <input id="sectionVisible" type="checkbox" checked />
+                Show on member site
+              </label>
+            </div>
+            <label>
+              Description
+              <textarea id="sectionDescription" rows="3"></textarea>
+            </label>
+            <div class="button-row">
+              <button class="primary-button" type="submit">Save section</button>
+              <button class="secondary-button" id="newSectionButton" type="button">New section</button>
+              <button class="danger-button" id="deleteSectionButton" type="button">Delete section</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel accent-panel">
+          <div class="step-heading">
+            <span>Step 3</span>
+            <div>
+              <h2>Add or edit a resource</h2>
+              <p>This is likely the step you will use most often. Add videos, links, PDFs, materials, and recordings here.</p>
+            </div>
+          </div>
+          <form class="editor-form" id="itemForm">
+            <label class="primary-select">
+              Select resource
+              <select id="itemSelect"></select>
+            </label>
+            <div class="field-grid">
+              <label>
+                Title
+                <input id="itemTitle" required />
+              </label>
+              <label>
+                URL
+                <input id="itemUrl" type="url" required />
+              </label>
+              <label>
+                Presenter
+                <input id="itemSpeaker" />
+              </label>
+              <label>
+                Date
+                <input id="itemDate" placeholder="October 3, 2025" />
+              </label>
+              <label>
+                Type
+                <select id="itemType">
+                  <option value="resource">Resource</option>
+                  <option value="video">Video</option>
+                  <option value="pdf">PDF</option>
+                  <option value="link">Link</option>
+                </select>
+              </label>
+              <label>
+                Display order
+                <input id="itemOrder" type="number" min="0" step="1" />
+              </label>
+              <label class="check-field">
+                <input id="itemVisible" type="checkbox" checked />
+                Show on member site
+              </label>
+            </div>
+            <div class="button-row">
+              <button class="primary-button" type="submit">Save resource</button>
+              <button class="secondary-button" id="newItemButton" type="button">New resource</button>
+              <button class="danger-button" id="deleteItemButton" type="button">Delete resource</button>
+            </div>
+          </form>
+        </section>
+      </section>
+    </main>
+    <script src="admin.js" type="module"></script>
+  </body>
+</html>

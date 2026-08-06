@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SEMCME Virtual Library</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Oswald:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="site-header">
+        <div class="utility-bar">
+          <p>Excellence and Innovation in Medical Education</p>
+          <a href="mailto:info@semcme.org">Contact Us</a>
+        </div>
+        <div class="topbar">
+          <a
+            class="brand"
+            href="/"
+            aria-label="Southeast Michigan Center for Medical Education home"
+          >
+            <img
+              src="assets/semcme_logo.png"
+              alt="Southeast Michigan Center for Medical Education"
+            />
+          </a>
+          <nav class="topnav" aria-label="Primary navigation">
+            <a
+              class="public-nav-link"
+              id="registerLink"
+              href="https://semcme.org/semcme-virtual-library/"
+              target="_blank"
+              rel="noopener"
+              >Register</a
+            >
+          </nav>
+          <button
+            class="sign-out-button"
+            id="signOutButton"
+            type="button"
+            hidden
+          >
+            Sign Out
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="login-view" id="loginView" aria-labelledby="loginTitle">
+          <div class="login-copy">
+            <p class="eyebrow">Registered participant access</p>
+            <h1 id="loginTitle">Virtual Library</h1>
+            <div class="login-instructions">
+              <p>
+                Registration is required to access the SEMCME Virtual Library.
+              </p>
+              <p>
+                Log in by entering the same email address used to register. No
+                password is required.
+              </p>
+              <p>
+                Follow the Sign-In Link sent to your email for verification.
+                Verification will be required every 24 hours.
+              </p>
+            </div>
+          </div>
+
+          <form class="login-panel" id="loginForm">
+            <div class="form-header">
+              <h2>Participant Login</h2>
+            </div>
+            <label>
+              Email address
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+              />
+            </label>
+            <p class="form-error" id="loginError" role="alert"></p>
+            <p class="form-success" id="loginSuccess" role="status"></p>
+            <button class="primary-button" type="submit">
+              Send Sign-In Link
+            </button>
+            <button class="secondary-button" id="previewButton" type="button">
+              Preview Library
+            </button>
+          </form>
+          <p class="support-note">
+            Having trouble receiving your access link or using this site?
+            <a
+              href="mailto:sross@semcme.org?subject=Virtual%20Library%20Access%20Help"
+              >Email Virtual Library support</a
+            >.
+          </p>
+        </section>
+
+        <section class="portal-view" id="portalView" hidden>
+          <section class="library-hero" aria-labelledby="portalTitle">
+            <div class="hero-copy">
+              <p class="eyebrow">Participant library</p>
+              <h1 id="portalTitle">SEMCME Virtual Library</h1>
+              <p>
+                Search and browse SEMCME virtual programs, lectures, recordings,
+                and educational resources by subject area.
+              </p>
+            </div>
+            <div class="library-stat" aria-label="Library count">
+              <span id="resourceCount">0</span>
+              <p>resources</p>
+            </div>
+          </section>
+
+          <section class="library-shell" id="library">
+            <section
+              class="filter-bar"
+              id="filters"
+              aria-label="Library filters"
+            >
+              <div>
+                <h2>Library Resources</h2>
+                <p id="welcomeText">Welcome back.</p>
+              </div>
+              <label class="search-box">
+                <span>Search by word</span>
+                <input
+                  id="searchInput"
+                  type="search"
+                  placeholder="Search titles, presenters, dates"
+                />
+              </label>
+              <div class="filter-actions">
+                <div class="section-filter">
+                  <button
+                    class="filter-button"
+                    id="sectionFilterButton"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="sectionFilterMenu"
+                  >
+                    Sections
+                  </button>
+                  <div class="section-menu" id="sectionFilterMenu" hidden></div>
+                </div>
+                <button
+                  class="secondary-button compact-button"
+                  id="clearFiltersButton"
+                  type="button"
+                >
+                  Clear filters
+                </button>
+              </div>
+            </section>
+
+            <p class="source-note" id="sourceNote"></p>
+            <div class="loading-state" id="loadingState" hidden>
+              Loading the latest library resources…
+            </div>
+            <section
+              class="section-list"
+              id="sectionList"
+              aria-label="Virtual Library sections"
+            ></section>
+            <p class="empty-state" id="emptyState" hidden>
+              No resources match the current search and filters.
+            </p>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
