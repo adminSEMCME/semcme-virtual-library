@@ -570,6 +570,8 @@ app.post("/api/admin/users/sync", requireDatabase, requireAdmin, async (request,
     }
     response.json({
       synced: users.length,
+      registrationsFound: registrations.recordsFound || registrations.length,
+      tracksChecked: registrations.tracksChecked || 1,
       users: (await listUsers()).map(publicAdminUser),
     });
   } catch (error) {

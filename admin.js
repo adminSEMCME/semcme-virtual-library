@@ -309,7 +309,11 @@ elements.syncUsersButton.addEventListener("click", async () => {
     const data = await requestJson("/api/admin/users/sync", { method: "POST" });
     state.users = data.users || [];
     renderUsers();
-    message(`Synced ${data.synced || 0} registered user${data.synced === 1 ? "" : "s"} from Constant Contact.`, "success");
+    const registrationsFound = data.registrationsFound ?? data.synced ?? 0;
+    message(
+      `Synced ${data.synced || 0} registered user${data.synced === 1 ? "" : "s"} from Constant Contact. Found ${registrationsFound} registration${registrationsFound === 1 ? "" : "s"} across ${data.tracksChecked || 1} track${data.tracksChecked === 1 ? "" : "s"}.`,
+      data.synced ? "success" : "error",
+    );
   } catch (error) {
     message(error.message, "error");
   } finally {
