@@ -1,11 +1,25 @@
 import pg from "pg";
 import { config } from "./config.js";
 
+function databaseUrlWithoutSslMode(value) {
+  if (!value) return value;
+  try {
+    const url = new URL(value);
+    url.searchParams.delete("sslmode");
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
+const useSsl =
+  config.databaseUrl?.includes("sslmode=require") ||
+  config.databaseUrl?.includes("supabase") ||
+  config.nodeEnv === "production";
+
 export const pool = new pg.Pool({
-  connectionString: config.databaseUrl,
-  ssl: config.databaseUrl?.includes("sslmode=require") || config.nodeEnv === "production"
-    ? { rejectUnauthorized: false }
-    : undefined
+  connectionString: databaseUrlWithoutSslMode(config.databaseUrl),
+  ssl: useSsl ? { rejectUnauthorized: false } : undefined
 });
 
 export function query(text, params) {
