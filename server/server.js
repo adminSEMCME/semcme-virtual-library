@@ -16,7 +16,7 @@ import {
   ConstantContactError,
 } from "./constantContact.js";
 import { sendMagicLinkEmail } from "./mailer.js";
-import { clearLibraryCache, getVirtualLibrary } from "./library.js";
+import { clearLibraryCache, getOriginalLibrary, getVirtualLibrary } from "./library.js";
 import {
   consumeMagicLink,
   createMagicLink,
@@ -416,7 +416,7 @@ app.get("/api/admin/library", requireDatabase, requireAdmin, async (request, res
 
 app.post("/api/admin/library/import-source", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
-    const current = await getVirtualLibrary({ force: true });
+    const current = getOriginalLibrary();
     for (const [sectionIndex, section] of current.sections.entries()) {
       const savedSection = await saveLibrarySection({
         name: section.name,

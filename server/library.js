@@ -109,6 +109,16 @@ const fallbackSections = [
   }
 ];
 
+function originalLibrary(errorMessage) {
+  const library = normalizeSections(fallbackSections, "original");
+  if (errorMessage) library.warning = errorMessage;
+  return library;
+}
+
+function hasVisibleItems(library) {
+  return Number(library?.totalItems || 0) > 0;
+}
+
 function decodeEntities(value) {
   return String(value || "")
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
@@ -181,6 +191,10 @@ function normalizeManagedSections(sections) {
     sections: normalized,
     totalItems: normalized.reduce((total, section) => total + section.items.length, 0)
   };
+}
+
+export function getOriginalLibrary() {
+  return originalLibrary();
 }
 
 function parseMeta(text) {
@@ -338,6 +352,9 @@ export async function getVirtualLibrary({ force = false } = {}) {
     const managedSections = await getLibraryContent();
     if (managedSections.some((section) => section.items.length)) {
       cache.value = normalizeManagedSections(managedSections);
+      if (!hasVisibleItems(cache.value)) {
+        cache.value = originalLibrary("No active admin library resources were found.");
+      }
       cache.loadedAt = Date.now();
       return cache.value;
     }
@@ -347,22 +364,7 @@ export async function getVirtualLibrary({ force = false } = {}) {
     }
   }
 
-  try {
-    const html = await fetchWordPressHtml();
-    if (isPasswordProtectedPage(html)) {
-      throw new Error("WordPress source is password protected.");
-    }
-
-    const parsed = parseRowsFromTable(html);
-    const sections = parsed.length ? parsed : parseLinksFromContent(html);
-    if (!sections.length) throw new Error("No library links found in source page.");
-
-    cache.value = normalizeSections(sections);
-  } catch (error) {
-    const fallback = normalizeSections(fallbackSections, "fallback");
-    fallback.warning = error.message;
-    cache.value = fallback;
-  }
+  cache.value = originalLibrary();
 
   cache.loadedAt = Date.now();
   return cache.value;

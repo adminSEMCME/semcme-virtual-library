@@ -108,7 +108,7 @@ function renderItemSelect() {
 
 function renderPostedList() {
   if (!state.sections.length) {
-    elements.postedList.innerHTML = `<p>No editable content has been added yet. Use Import current library to start from the existing library content.</p>`;
+    elements.postedList.innerHTML = `<p>No editable content has been added yet. Use Import original library to start from the saved original library content.</p>`;
     return;
   }
 
@@ -206,7 +206,7 @@ elements.refreshButton.addEventListener("click", async () => {
 });
 
 elements.importButton.addEventListener("click", async () => {
-  if (!confirm("Import the current library into the admin editor? This will add editable copies of the current sections and resources.")) return;
+  if (!confirm("Import the original library into the admin editor? This will add editable copies of the saved original sections and resources.")) return;
   setBusy(elements.importButton, true, "Importing...");
   try {
     const data = await requestJson("/api/admin/library/import-source", { method: "POST" });
@@ -214,11 +214,11 @@ elements.importButton.addEventListener("click", async () => {
     state.selectedSectionId = state.sections[0] ? String(state.sections[0].id) : "";
     state.selectedItemId = "";
     render();
-    message("Current library imported. Future edits can be managed here.", "success");
+    message("Original library imported. Future edits can be managed here.", "success");
   } catch (error) {
     message(error.message, "error");
   } finally {
-    setBusy(elements.importButton, false, "Import current library");
+    setBusy(elements.importButton, false, "Import original library");
   }
 });
 
