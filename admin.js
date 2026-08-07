@@ -4,6 +4,8 @@ const state = {
   selectedSectionId: "",
   selectedItemId: "",
   expandedPostedSectionId: "",
+  userSearch: "",
+  institutionFilter: "",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -24,6 +26,9 @@ const elements = {
   postedList: $("#postedList"),
   usersCount: $("#usersCount"),
   usersTableBody: $("#usersTableBody"),
+  userSearchInput: $("#userSearchInput"),
+  institutionFilterSelect: $("#institutionFilterSelect"),
+  clearUserFiltersButton: $("#clearUserFiltersButton"),
   sectionForm: $("#sectionForm"),
   sectionSelect: $("#sectionSelect"),
   sectionName: $("#sectionName"),
@@ -197,22 +202,72 @@ function formatDate(value) {
   });
 }
 
+function normalize(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function userInstitution(user) {
+  return user.memberInstitution || user.institution || "";
+}
+
+function filteredUsers() {
+  const search = normalize(state.userSearch);
+  const institution = normalize(state.institutionFilter);
+
+  return (state.users || []).filter((user) => {
+    const userInstitutionValue = normalize(userInstitution(user));
+    const searchable = [
+      user.name,
+      user.email,
+      user.memberInstitution,
+      user.institution,
+      user.degree,
+      user.roleTitle,
+    ].map(normalize).join(" ");
+
+    return (!search || searchable.includes(search)) && (!institution || userInstitutionValue === institution);
+  });
+}
+
+function renderInstitutionFilter() {
+  const institutions = [...new Set((state.users || []).map(userInstitution).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
+
+  elements.institutionFilterSelect.innerHTML = [
+    `<option value="">All institutions</option>`,
+    ...institutions.map((institution) => `<option value="${esc(institution)}">${esc(institution)}</option>`),
+  ].join("");
+
+  const selectedInstitution = institutions.find((institution) => normalize(institution) === normalize(state.institutionFilter));
+  state.institutionFilter = selectedInstitution || "";
+  elements.institutionFilterSelect.value = state.institutionFilter;
+}
+
 function renderUsers() {
   const users = state.users || [];
-  elements.usersCount.textContent = `${users.length} user${users.length === 1 ? "" : "s"}`;
+  renderInstitutionFilter();
+  const visibleUsers = filteredUsers();
+  elements.usersCount.textContent = users.length === visibleUsers.length
+    ? `${users.length} user${users.length === 1 ? "" : "s"}`
+    : `${visibleUsers.length} of ${users.length} users`;
 
   if (!users.length) {
     elements.usersTableBody.innerHTML = `<tr><td colspan="5">No users synced yet.</td></tr>`;
     return;
   }
 
-  elements.usersTableBody.innerHTML = users.map((user) => `
+  if (!visibleUsers.length) {
+    elements.usersTableBody.innerHTML = `<tr><td colspan="5">No users match the current filters.</td></tr>`;
+    return;
+  }
+
+  elements.usersTableBody.innerHTML = visibleUsers.map((user) => `
     <tr>
       <td>
         <strong>${esc(user.name || user.email)}</strong>
         <small>${esc(user.email)}</small>
       </td>
-      <td>${esc(user.memberInstitution || "-")}</td>
+      <td>${esc(userInstitution(user) || "-")}</td>
       <td>${esc(user.degree || "-")}</td>
       <td>${esc(user.roleTitle || "-")}</td>
       <td>${esc(formatDate(user.lastLoginAt))}</td>
@@ -323,6 +378,24 @@ elements.syncUsersButton.addEventListener("click", async () => {
 
 elements.reconnectConstantContactButton.addEventListener("click", () => {
   window.location.href = "/api/admin/constant-contact/connect";
+});
+
+elements.userSearchInput.addEventListener("input", () => {
+  state.userSearch = elements.userSearchInput.value;
+  renderUsers();
+});
+
+elements.institutionFilterSelect.addEventListener("change", () => {
+  state.institutionFilter = elements.institutionFilterSelect.value;
+  renderUsers();
+});
+
+elements.clearUserFiltersButton.addEventListener("click", () => {
+  state.userSearch = "";
+  state.institutionFilter = "";
+  elements.userSearchInput.value = "";
+  elements.institutionFilterSelect.value = "";
+  renderUsers();
 });
 
 elements.importButton.addEventListener("click", async () => {
