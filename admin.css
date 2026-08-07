@@ -183,6 +183,10 @@ textarea {
   font-size: 16px;
 }
 
+#username {
+  font-size: 14px;
+}
+
 textarea {
   min-height: 92px;
   resize: vertical;
@@ -402,6 +406,50 @@ button.is-loading::after {
   background: #fff;
 }
 
+.posted-section-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.posted-section-button {
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  min-height: 54px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--navy);
+  text-align: left;
+}
+
+.posted-section-button strong,
+.posted-section-button span {
+  display: block;
+}
+
+.posted-section-button strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+}
+
+.posted-section-button span {
+  margin-left: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.posted-section-button:hover:not(:disabled),
+.posted-section-button.is-active {
+  border-color: var(--blue);
+  background: #f5fafc;
+  color: var(--blue);
+  box-shadow: 0 8px 18px rgba(19, 84, 155, 0.1);
+}
+
 .posted-section {
   overflow: hidden;
   border: 1px solid var(--line);
@@ -422,6 +470,13 @@ button.is-loading::after {
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
+}
+
+.posted-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--muted);
+  background: #fff;
 }
 
 .posted-item {

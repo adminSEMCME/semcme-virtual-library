@@ -2,6 +2,7 @@ const state = {
   sections: [],
   selectedSectionId: "",
   selectedItemId: "",
+  expandedPostedSectionId: "",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -113,27 +114,48 @@ function renderPostedList() {
     return;
   }
 
-  elements.postedList.innerHTML = state.sections.map((section) => `
-    <section class="posted-section">
-      <div class="posted-section-header">
-        <h3>${esc(section.name)}</h3>
-        <span>${section.items.length} item${section.items.length === 1 ? "" : "s"}</span>
-      </div>
-      ${
-        section.items.length
-          ? section.items.map((item) => `
-              <button class="posted-item" type="button" data-section-id="${esc(section.id)}" data-item-id="${esc(item.id)}">
-                <span class="pill">${esc(item.itemType || "resource")}</span>
-                <span>
-                  <strong>${esc(item.title)}</strong>
-                  <small>${esc([item.speaker, item.date].filter(Boolean).join(" - ") || item.url)}</small>
-                </span>
-              </button>
-            `).join("")
-          : `<button class="posted-item" type="button" data-section-id="${esc(section.id)}"><span class="pill">empty</span><span><strong>No resources in this section</strong><small>Click to edit this section.</small></span></button>`
-      }
-    </section>
+  const expandedSection = state.sections.find((section) => String(section.id) === String(state.expandedPostedSectionId));
+  const sectionButtons = state.sections.map((section) => `
+    <button
+      class="posted-section-button${String(section.id) === String(state.expandedPostedSectionId) ? " is-active" : ""}"
+      type="button"
+      data-review-section-id="${esc(section.id)}"
+    >
+      <strong>${esc(section.name)}</strong>
+      <span>${section.items.length} item${section.items.length === 1 ? "" : "s"}</span>
+    </button>
   `).join("");
+
+  elements.postedList.innerHTML = `
+    <div class="posted-section-picker">
+      ${sectionButtons}
+    </div>
+    ${
+      expandedSection
+        ? `
+          <section class="posted-section">
+            <div class="posted-section-header">
+              <h3>${esc(expandedSection.name)}</h3>
+              <span>${expandedSection.items.length} item${expandedSection.items.length === 1 ? "" : "s"}</span>
+            </div>
+            ${
+              expandedSection.items.length
+                ? expandedSection.items.map((item) => `
+                    <button class="posted-item" type="button" data-section-id="${esc(expandedSection.id)}" data-item-id="${esc(item.id)}">
+                      <span class="pill">${esc(item.itemType || "resource")}</span>
+                      <span>
+                        <strong>${esc(item.title)}</strong>
+                        <small>${esc([item.speaker, item.date].filter(Boolean).join(" - ") || item.url)}</small>
+                      </span>
+                    </button>
+                  `).join("")
+                : `<p class="posted-empty">No resources are currently posted in this section.</p>`
+            }
+          </section>
+        `
+        : `<p>Choose a section above to review its current resources.</p>`
+    }
+  `;
 }
 
 function fillSectionForm() {
@@ -164,6 +186,12 @@ async function loadLibrary() {
   if (state.selectedSectionId && !activeSection()) state.selectedSectionId = "";
   if (!state.selectedSectionId && state.sections[0]) state.selectedSectionId = String(state.sections[0].id);
   if (state.selectedItemId && !activeItem()) state.selectedItemId = "";
+  if (
+    state.expandedPostedSectionId &&
+    !state.sections.some((section) => String(section.id) === String(state.expandedPostedSectionId))
+  ) {
+    state.expandedPostedSectionId = "";
+  }
   render();
 }
 
@@ -214,6 +242,7 @@ elements.importButton.addEventListener("click", async () => {
     state.sections = data.sections || [];
     state.selectedSectionId = state.sections[0] ? String(state.sections[0].id) : "";
     state.selectedItemId = "";
+    state.expandedPostedSectionId = "";
     render();
     message("Original library imported. Future edits can be managed here.", "success");
   } catch (error) {
@@ -335,10 +364,20 @@ elements.deleteItemButton.addEventListener("click", async () => {
 });
 
 elements.postedList.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-section-id]");
-  if (!button) return;
-  state.selectedSectionId = button.dataset.sectionId || "";
-  state.selectedItemId = button.dataset.itemId || "";
+  const sectionButton = event.target.closest("[data-review-section-id]");
+  if (sectionButton) {
+    state.expandedPostedSectionId = sectionButton.dataset.reviewSectionId || "";
+    state.selectedSectionId = state.expandedPostedSectionId;
+    state.selectedItemId = "";
+    render();
+    return;
+  }
+
+  const itemButton = event.target.closest("[data-item-id]");
+  if (!itemButton) return;
+  state.selectedSectionId = itemButton.dataset.sectionId || "";
+  state.selectedItemId = itemButton.dataset.itemId || "";
+  state.expandedPostedSectionId = state.selectedSectionId;
   render();
   document.querySelector(".accent-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 });
