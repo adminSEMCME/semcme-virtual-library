@@ -1,5 +1,6 @@
 const state = {
   sections: [],
+  users: [],
   selectedSectionId: "",
   selectedItemId: "",
   expandedPostedSectionId: "",
@@ -16,9 +17,12 @@ const elements = {
   loginMessage: $("#loginMessage"),
   dashboardMessage: $("#dashboardMessage"),
   refreshButton: $("#refreshButton"),
+  syncUsersButton: $("#syncUsersButton"),
   importButton: $("#importButton"),
   signOutButton: $("#signOutButton"),
   postedList: $("#postedList"),
+  usersCount: $("#usersCount"),
+  usersTableBody: $("#usersTableBody"),
   sectionForm: $("#sectionForm"),
   sectionSelect: $("#sectionSelect"),
   sectionName: $("#sectionName"),
@@ -86,6 +90,7 @@ function render() {
   renderSectionSelect();
   renderItemSelect();
   renderPostedList();
+  renderUsers();
   fillSectionForm();
   fillItemForm();
 }
@@ -180,6 +185,41 @@ function fillItemForm() {
   elements.deleteItemButton.disabled = !item;
 }
 
+function formatDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function renderUsers() {
+  const users = state.users || [];
+  elements.usersCount.textContent = `${users.length} user${users.length === 1 ? "" : "s"}`;
+
+  if (!users.length) {
+    elements.usersTableBody.innerHTML = `<tr><td colspan="6">No users synced yet.</td></tr>`;
+    return;
+  }
+
+  elements.usersTableBody.innerHTML = users.map((user) => `
+    <tr>
+      <td>
+        <strong>${esc(user.name || user.email)}</strong>
+        <small>${esc(user.email)}</small>
+      </td>
+      <td>${esc(user.memberInstitution || "-")}</td>
+      <td>${esc(user.degree || "-")}</td>
+      <td>${esc(user.roleTitle || "-")}</td>
+      <td>${esc(formatDate(user.lastLoginAt))}</td>
+      <td>${esc(formatDate(user.syncedAt || user.createdAt))}</td>
+    </tr>
+  `).join("");
+}
+
 async function loadLibrary() {
   const data = await requestJson("/api/admin/library");
   state.sections = data.sections || [];
@@ -195,10 +235,30 @@ async function loadLibrary() {
   render();
 }
 
+async function loadDashboardData() {
+  const [libraryData, usersData] = await Promise.all([
+    requestJson("/api/admin/library"),
+    requestJson("/api/admin/users"),
+  ]);
+
+  state.sections = libraryData.sections || [];
+  state.users = usersData.users || [];
+  if (state.selectedSectionId && !activeSection()) state.selectedSectionId = "";
+  if (!state.selectedSectionId && state.sections[0]) state.selectedSectionId = String(state.sections[0].id);
+  if (state.selectedItemId && !activeItem()) state.selectedItemId = "";
+  if (
+    state.expandedPostedSectionId &&
+    !state.sections.some((section) => String(section.id) === String(state.expandedPostedSectionId))
+  ) {
+    state.expandedPostedSectionId = "";
+  }
+  render();
+}
+
 async function showDashboard() {
   elements.loginView.hidden = true;
   elements.dashboard.hidden = false;
-  await loadLibrary();
+  await loadDashboardData();
   const params = new URLSearchParams(window.location.search);
   const ccStatus = params.get("cc");
   if (ccStatus === "connected") {
@@ -234,12 +294,26 @@ elements.loginForm.addEventListener("submit", async (event) => {
 elements.refreshButton.addEventListener("click", async () => {
   setBusy(elements.refreshButton, true, "Refreshing...");
   try {
-    await loadLibrary();
-    message("Library data refreshed.", "success");
+    await loadDashboardData();
+    message("Dashboard data refreshed.", "success");
   } catch (error) {
     message(error.message, "error");
   } finally {
     setBusy(elements.refreshButton, false, "Refresh data");
+  }
+});
+
+elements.syncUsersButton.addEventListener("click", async () => {
+  setBusy(elements.syncUsersButton, true, "Syncing...");
+  try {
+    const data = await requestJson("/api/admin/users/sync", { method: "POST" });
+    state.users = data.users || [];
+    renderUsers();
+    message(`Synced ${data.synced || 0} registered user${data.synced === 1 ? "" : "s"} from Constant Contact.`, "success");
+  } catch (error) {
+    message(error.message, "error");
+  } finally {
+    setBusy(elements.syncUsersButton, false, "Sync users");
   }
 });
 

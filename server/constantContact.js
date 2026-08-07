@@ -394,3 +394,48 @@ export async function findVirtualLibraryRegistrationByEmail(email) {
 
   return null;
 }
+
+export async function listVirtualLibraryRegistrations() {
+  const eventId = config.constantContact.eventId;
+
+  if (!eventId) {
+    throw new ConstantContactError("Constant Contact Virtual Library event is not configured.", { status: 503 });
+  }
+
+  const trackKey = await resolveTrackKey(eventId);
+  const program = { eventId, trackKey };
+  const registrations = [];
+  let cursor = null;
+
+  do {
+    const params = new URLSearchParams({
+      registration_status: "REGISTERED",
+      limit: "100"
+    });
+    if (cursor) params.set("cursor", cursor);
+
+    const response = await constantContactFetch(`/events/${encodeURIComponent(eventId)}/tracks/${encodeURIComponent(trackKey)}/registrations?${params}`);
+    if (!response.ok) {
+      const body = await response.text();
+      throw new ConstantContactError(`Constant Contact registration sync failed: ${response.status} ${body}`, { status: response.status });
+    }
+
+    const data = await response.json();
+    const records = data.records || data.registrations || [];
+    records.forEach((record) => {
+      const registration = mapRegistration(record, program);
+      if (registration) registrations.push(registration);
+    });
+
+    cursor = data.next_cursor || null;
+    if (!cursor && data._links?.next?.href) {
+      try {
+        cursor = new URL(data._links.next.href, API_BASE).searchParams.get("cursor");
+      } catch {
+        cursor = null;
+      }
+    }
+  } while (cursor);
+
+  return registrations;
+}

@@ -91,6 +91,32 @@ export async function updateUserRegistrationStatus(email, registrationStatus) {
   return result.rows[0] || null;
 }
 
+export async function listUsers() {
+  const result = await query(
+    `
+      SELECT
+        id,
+        email,
+        full_name,
+        first_name,
+        last_name,
+        member_institution,
+        organization,
+        degree,
+        role_title,
+        specialty,
+        registration_status,
+        registered_at,
+        synced_at,
+        last_login_at,
+        created_at
+      FROM vl_users
+      ORDER BY COALESCE(last_login_at, synced_at, registered_at, created_at) DESC, email ASC
+    `
+  );
+  return result.rows;
+}
+
 export async function createMagicLink(userId, request) {
   const token = randomToken(32);
   const result = await query(

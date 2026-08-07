@@ -299,6 +299,28 @@ button.is-loading::after {
   box-shadow: var(--shadow);
 }
 
+.panel-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.panel-heading-row p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.panel-heading-row > span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .posted-panel,
 .accent-panel {
   background: var(--soft);
@@ -528,6 +550,61 @@ button.is-loading::after {
   overflow-wrap: anywhere;
 }
 
+.users-panel {
+  overflow: hidden;
+  padding: 0;
+}
+
+.users-panel .panel-heading-row {
+  margin: 0;
+  padding: 24px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.users-table th,
+.users-table td {
+  padding: 13px 16px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.users-table th {
+  background: #eaf2f5;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.users-table td {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.users-table td strong,
+.users-table td small {
+  display: block;
+}
+
+.users-table td strong {
+  color: var(--navy);
+}
+
+.users-table td small {
+  margin-top: 3px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 820px) {
   .utility-bar {
     height: auto;
@@ -553,6 +630,16 @@ button.is-loading::after {
 
   .panel,
   .login-card {
+    padding: 20px;
+  }
+
+  .users-panel {
+    padding: 0;
+  }
+
+  .panel-heading-row,
+  .users-panel .panel-heading-row {
+    display: grid;
     padding: 20px;
   }
 }

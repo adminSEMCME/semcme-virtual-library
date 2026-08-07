@@ -14,6 +14,7 @@ import {
 import {
   findVirtualLibraryRegistrationByEmail,
   ConstantContactError,
+  listVirtualLibraryRegistrations,
   saveConstantContactTokens,
 } from "./constantContact.js";
 import { sendMagicLinkEmail } from "./mailer.js";
@@ -30,6 +31,7 @@ import {
   deleteLibrarySection,
   findUserByEmail,
   getLibraryContent,
+  listUsers,
   revokeSession,
   replaceLibraryContent,
   saveLibraryItem,
@@ -266,6 +268,24 @@ function publicUser(user) {
   return {
     email: user.email,
     name: user.full_name || user.email,
+  };
+}
+
+function publicAdminUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.full_name || [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email,
+    memberInstitution: user.member_institution || user.organization || "",
+    organization: user.organization || "",
+    degree: user.degree || "",
+    roleTitle: user.role_title || "",
+    specialty: user.specialty || "",
+    registrationStatus: user.registration_status || "",
+    registeredAt: user.registered_at || "",
+    syncedAt: user.synced_at || "",
+    lastLoginAt: user.last_login_at || "",
+    createdAt: user.created_at || "",
   };
 }
 
@@ -527,6 +547,31 @@ function publicAdminLibrary(sections) {
 app.get("/api/admin/library", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
     response.json(publicAdminLibrary(await getLibraryContent({ includeHidden: true })));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/admin/users", requireDatabase, requireAdmin, async (request, response, next) => {
+  try {
+    const users = await listUsers();
+    response.json({ users: users.map(publicAdminUser) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/admin/users/sync", requireDatabase, requireAdmin, async (request, response, next) => {
+  try {
+    const registrations = await listVirtualLibraryRegistrations();
+    const users = [];
+    for (const registration of registrations) {
+      users.push(await upsertUserFromRegistration(registration));
+    }
+    response.json({
+      synced: users.length,
+      users: (await listUsers()).map(publicAdminUser),
+    });
   } catch (error) {
     next(error);
   }
