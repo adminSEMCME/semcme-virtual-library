@@ -31,12 +31,8 @@ export const config = {
     process.env.ADMIN_PASSWORD ||
     "",
   trustProxy: process.env.TRUST_PROXY === "true",
-  sourceUrl:
-    process.env.VIRTUAL_LIBRARY_SOURCE_URL ||
-    "https://semcme.org/semcme-virtual-library/",
-  wordpressPassword: process.env.VIRTUAL_LIBRARY_WORDPRESS_PASSWORD,
-  scrapeCacheMinutes: Number(
-    process.env.VIRTUAL_LIBRARY_SCRAPE_CACHE_MINUTES || 10,
+  libraryCacheMinutes: Number(
+    process.env.VIRTUAL_LIBRARY_CACHE_MINUTES || 10,
   ),
   previewUnlock:
     process.env.VIRTUAL_LIBRARY_PREVIEW_UNLOCK === "true" ||

@@ -16,7 +16,11 @@ import {
   ConstantContactError,
 } from "./constantContact.js";
 import { sendMagicLinkEmail } from "./mailer.js";
-import { clearLibraryCache, getOriginalLibrary, getVirtualLibrary } from "./library.js";
+import {
+  clearLibraryCache,
+  getOriginalLibrary,
+  getVirtualLibrary,
+} from "./library.js";
 import {
   consumeMagicLink,
   createMagicLink,
@@ -26,6 +30,7 @@ import {
   findUserByEmail,
   getLibraryContent,
   revokeSession,
+  replaceLibraryContent,
   saveLibraryItem,
   saveLibrarySection,
   updateUserRegistrationStatus,
@@ -260,7 +265,6 @@ app.get("/api/health", async (request, response) => {
 app.get("/api/public-settings", (request, response) => {
   response.json({
     registrationUrl: config.registrationUrl,
-    sourceUrl: config.sourceUrl,
   });
 });
 
@@ -417,28 +421,13 @@ app.get("/api/admin/library", requireDatabase, requireAdmin, async (request, res
 app.post("/api/admin/library/import-source", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
     const current = getOriginalLibrary();
-    for (const [sectionIndex, section] of current.sections.entries()) {
-      const savedSection = await saveLibrarySection({
-        name: section.name,
-        slug: section.id,
-        displayOrder: sectionIndex,
-        isVisible: true
-      });
-      for (const [itemIndex, item] of section.items.entries()) {
-        await saveLibraryItem({
-          sectionId: savedSection.id,
-          title: item.title,
-          speaker: item.speaker,
-          date: item.date,
-          url: item.url,
-          itemType: item.embedUrl ? "video" : "resource",
-          displayOrder: itemIndex,
-          isVisible: true
-        });
-      }
-    }
+    await replaceLibraryContent(current);
     clearLibraryCache();
-    response.json(publicAdminLibrary(await getLibraryContent({ includeHidden: true })));
+    response.json({
+      ...publicAdminLibrary(await getLibraryContent({ includeHidden: true })),
+      source: "original",
+      importedItems: current.totalItems,
+    });
   } catch (error) {
     next(error);
   }

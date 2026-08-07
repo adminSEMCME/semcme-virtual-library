@@ -66,6 +66,7 @@ function loginMessage(value) {
 
 function setBusy(button, busy, text) {
   button.disabled = busy;
+  button.classList.toggle("is-loading", busy);
   if (text) {
     if (!button.dataset.originalText) button.dataset.originalText = button.textContent;
     button.textContent = busy ? text : button.dataset.originalText;

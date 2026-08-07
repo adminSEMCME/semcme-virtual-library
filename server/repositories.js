@@ -352,3 +352,58 @@ export async function saveLibraryItem(item) {
 export async function deleteLibraryItem(id) {
   await query("DELETE FROM vl_library_items WHERE id = $1", [id]);
 }
+
+export async function replaceLibraryContent(library) {
+  return withTransaction(async (client) => {
+    await client.query("DELETE FROM vl_library_items");
+    await client.query("DELETE FROM vl_library_sections");
+
+    const savedSections = [];
+    for (const [sectionIndex, section] of (library.sections || []).entries()) {
+      const sectionResult = await client.query(
+        `
+          INSERT INTO vl_library_sections (name, slug, description, display_order, is_visible)
+          VALUES ($1, $2, $3, $4, TRUE)
+          RETURNING *
+        `,
+        [
+          String(section.name || "").trim(),
+          slugify(section.id || section.slug || section.name),
+          String(section.description || "").trim() || null,
+          sectionIndex,
+        ],
+      );
+      const savedSection = sectionResult.rows[0];
+      savedSections.push(savedSection);
+
+      for (const [itemIndex, item] of (section.items || []).entries()) {
+        await client.query(
+          `
+            INSERT INTO vl_library_items (
+              section_id,
+              title,
+              speaker,
+              resource_date,
+              url,
+              item_type,
+              display_order,
+              is_visible
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+          `,
+          [
+            savedSection.id,
+            String(item.title || "").trim(),
+            String(item.speaker || "").trim() || null,
+            String(item.date || "").trim() || null,
+            String(item.url || "").trim(),
+            String(item.type || item.itemType || (item.embedUrl ? "video" : "resource")).trim() || "resource",
+            itemIndex,
+          ],
+        );
+      }
+    }
+
+    return savedSections;
+  });
+}
