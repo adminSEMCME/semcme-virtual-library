@@ -14,6 +14,7 @@ import {
 import {
   findVirtualLibraryRegistrationByEmail,
   ConstantContactError,
+  saveConstantContactTokens,
 } from "./constantContact.js";
 import { sendMagicLinkEmail } from "./mailer.js";
 import {
@@ -44,6 +45,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, "..");
 const app = express();
 const ADMIN_COOKIE = "vl_admin";
+const CC_OAUTH_STATE_COOKIE = "vl_cc_oauth_state";
+const CC_AUTHORIZE_URL = "https://authz.constantcontact.com/oauth2/default/v1/authorize";
+const CC_TOKEN_URL = "https://authz.constantcontact.com/oauth2/default/v1/token";
 
 let schemaReady = false;
 let schemaError = null;
@@ -147,6 +151,23 @@ function clearAdminCookie(response) {
   response.clearCookie(ADMIN_COOKIE, { path: "/" });
 }
 
+function clearOAuthStateCookie(response) {
+  response.clearCookie(CC_OAUTH_STATE_COOKIE, { path: "/" });
+}
+
+function createSignedValue(value) {
+  return `${value}.${signAdminValue(value)}`;
+}
+
+function verifySignedValue(value) {
+  const [raw, signature] = String(value || "").split(".");
+  if (!raw || !signature) return "";
+  const expected = signAdminValue(raw);
+  if (signature.length !== expected.length) return "";
+  if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return "";
+  return raw;
+}
+
 function requireAdmin(request, response, next) {
   if (isAdminCookieValid(request.cookies?.[ADMIN_COOKIE])) {
     next();
@@ -155,6 +176,54 @@ function requireAdmin(request, response, next) {
 
   clearAdminCookie(response);
   response.status(401).json({ error: "Admin login required." });
+}
+
+function constantContactRedirectUri() {
+  return `${config.appBaseUrl.replace(/\/$/, "")}/api/admin/constant-contact/callback`;
+}
+
+function constantContactAuthorizationUrl(state) {
+  const params = new URLSearchParams({
+    client_id: config.constantContact.clientId || "",
+    response_type: "code",
+    redirect_uri: constantContactRedirectUri(),
+    scope: "account_read contact_data offline_access",
+    state,
+  });
+  return `${CC_AUTHORIZE_URL}?${params}`;
+}
+
+async function exchangeConstantContactAuthorizationCode(code) {
+  if (!config.constantContact.clientId || !config.constantContact.clientSecret) {
+    throw Object.assign(new Error("Constant Contact client credentials are not configured."), { status: 503 });
+  }
+
+  const credentials = Buffer.from(
+    `${config.constantContact.clientId}:${config.constantContact.clientSecret}`,
+  ).toString("base64");
+  const response = await fetch(CC_TOKEN_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: constantContactRedirectUri(),
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data.error_description || data.error || "";
+    throw new Error(`Constant Contact authorization failed ${response.status}${detail ? `: ${detail}` : ""}`);
+  }
+
+  await saveConstantContactTokens({
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+  });
 }
 
 function isSameOriginRequest(request) {
@@ -386,6 +455,47 @@ app.get("/api/admin/me", requireDatabase, requireAdmin, (request, response) => {
   response.json({ ok: true });
 });
 
+app.get("/api/admin/constant-contact/connect", requireDatabase, (request, response) => {
+  if (!isAdminCookieValid(request.cookies?.[ADMIN_COOKIE])) {
+    response.redirect("/admin");
+    return;
+  }
+  if (!config.constantContact.clientId || !config.constantContact.clientSecret) {
+    response.status(503).json({ error: "Constant Contact client credentials are not configured." });
+    return;
+  }
+
+  const state = randomToken(16);
+  response.cookie(CC_OAUTH_STATE_COOKIE, createSignedValue(state), {
+    httpOnly: true,
+    secure: config.cookieSecure,
+    sameSite: "lax",
+    maxAge: 10 * 60 * 1000,
+    path: "/",
+  });
+  response.redirect(constantContactAuthorizationUrl(state));
+});
+
+app.get("/api/admin/constant-contact/callback", requireDatabase, async (request, response) => {
+  const expectedState = verifySignedValue(request.cookies?.[CC_OAUTH_STATE_COOKIE]);
+  const returnedState = String(request.query?.state || "");
+  const code = String(request.query?.code || "");
+  clearOAuthStateCookie(response);
+
+  if (!expectedState || returnedState !== expectedState || !code) {
+    response.redirect("/admin?cc=failed");
+    return;
+  }
+
+  try {
+    await exchangeConstantContactAuthorizationCode(code);
+    response.redirect("/admin?cc=connected");
+  } catch (error) {
+    console.error("Constant Contact authorization failed:", error);
+    response.redirect("/admin?cc=failed");
+  }
+});
+
 function publicAdminLibrary(sections) {
   return {
     sections: sections.map((section) => ({
@@ -511,11 +621,6 @@ app.get(
 
 app.get("/api/library-preview", async (request, response, next) => {
   try {
-    if (!config.previewUnlock) {
-      response.status(404).json({ error: "Not found." });
-      return;
-    }
-
     const force = request.query.refresh === "true";
     response.json(await getVirtualLibrary({ force }));
   } catch (error) {

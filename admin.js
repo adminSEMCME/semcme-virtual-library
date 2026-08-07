@@ -199,6 +199,13 @@ async function showDashboard() {
   elements.loginView.hidden = true;
   elements.dashboard.hidden = false;
   await loadLibrary();
+  const ccStatus = new URLSearchParams(window.location.search).get("cc");
+  if (ccStatus === "connected") {
+    message("Constant Contact connected successfully.", "success");
+  } else if (ccStatus === "failed") {
+    message("Constant Contact could not be connected. Please try again.", "error");
+  }
+  if (ccStatus) window.history.replaceState({}, document.title, "/admin");
 }
 
 elements.loginForm.addEventListener("submit", async (event) => {

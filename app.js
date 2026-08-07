@@ -228,8 +228,8 @@ async function loadLibrary({ preview = false } = {}) {
 async function showPortal(user, options = {}) {
   state.user = user;
   elements.welcomeText.textContent = `Welcome back, ${user.name || user.email}.`;
-  setAuthView(true);
   await loadLibrary(options);
+  setAuthView(true);
 }
 
 async function bootstrap() {

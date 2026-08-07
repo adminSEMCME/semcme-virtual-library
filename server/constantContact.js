@@ -61,6 +61,13 @@ async function refreshAccessToken() {
   return accessToken;
 }
 
+export async function saveConstantContactTokens(tokens) {
+  accessToken = tokens.accessToken || tokens.access_token || accessToken;
+  refreshToken = tokens.refreshToken || tokens.refresh_token || refreshToken;
+  loadedStoredTokens = true;
+  await saveIntegrationTokens("constant_contact", { accessToken, refreshToken });
+}
+
 async function constantContactFetch(path, options = {}, allowRefresh = true) {
   await loadStoredTokens();
 

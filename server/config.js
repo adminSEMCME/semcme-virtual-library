@@ -34,9 +34,6 @@ export const config = {
   libraryCacheMinutes: Number(
     process.env.VIRTUAL_LIBRARY_CACHE_MINUTES || 10,
   ),
-  previewUnlock:
-    process.env.VIRTUAL_LIBRARY_PREVIEW_UNLOCK === "true" ||
-    process.env.NODE_ENV !== "production",
   registrationUrl:
     process.env.VIRTUAL_LIBRARY_REGISTRATION_URL ||
     "https://semcme.org/semcme-virtual-library/",
