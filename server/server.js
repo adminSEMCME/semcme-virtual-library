@@ -273,6 +273,12 @@ function publicUser(user) {
   };
 }
 
+function publicRoleTitle(value) {
+  const text = String(value || "").trim();
+  if (!text || text.toLowerCase().startsWith("summary for registration id:")) return "";
+  return text;
+}
+
 function publicAdminUser(user) {
   return {
     id: user.id,
@@ -281,7 +287,7 @@ function publicAdminUser(user) {
     memberInstitution: user.member_institution || user.organization || "",
     organization: user.organization || "",
     degree: user.degree || "",
-    roleTitle: user.role_title || "",
+    roleTitle: publicRoleTitle(user.role_title),
     specialty: user.specialty || "",
     registrationStatus: user.registration_status || "",
     registeredAt: user.registered_at || "",

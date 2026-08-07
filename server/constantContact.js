@@ -245,6 +245,25 @@ function labelMatches(label, candidates) {
   return candidates.some((candidate) => normalized === candidate || normalized.includes(candidate));
 }
 
+function roleTitleValue(record) {
+  const value = findProfileField(
+    record,
+    ["role_title", "job_title", "contact.job_title", "profile.job_title", "contact_detail.job_title"],
+    ["role/title", "role title", "job title", "position title"]
+  );
+  if (!value) return null;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (
+    normalized.startsWith("summary for registration id") ||
+    normalized.includes("registration id:")
+  ) {
+    return null;
+  }
+
+  return value;
+}
+
 function flattenRegistrationFields(record) {
   const fields = [];
   const visit = (value, parentLabel = "") => {
@@ -373,11 +392,7 @@ function mapRegistration(record, program) {
       ["degree", "designation", "credentials"],
       ["degree", "credentials", "designation"]
     ),
-    roleTitle: findProfileField(
-      record,
-      ["role_title", "role", "title", "job_title", "contact.job_title", "profile.job_title"],
-      ["role/title", "role", "title", "job title"]
-    ),
+    roleTitle: roleTitleValue(record),
     specialty: findProfileField(
       record,
       ["specialty", "select_specialty"],

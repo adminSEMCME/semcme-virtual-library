@@ -46,7 +46,11 @@ export async function upsertUserFromRegistration(registration) {
         member_institution = COALESCE(EXCLUDED.member_institution, vl_users.member_institution),
         organization = COALESCE(EXCLUDED.organization, vl_users.organization),
         degree = COALESCE(EXCLUDED.degree, vl_users.degree),
-        role_title = COALESCE(EXCLUDED.role_title, vl_users.role_title),
+        role_title = CASE
+          WHEN EXCLUDED.role_title IS NOT NULL THEN EXCLUDED.role_title
+          WHEN LOWER(COALESCE(vl_users.role_title, '')) LIKE 'summary for registration id:%' THEN NULL
+          ELSE vl_users.role_title
+        END,
         specialty = COALESCE(EXCLUDED.specialty, vl_users.specialty),
         constant_contact_contact_id = EXCLUDED.constant_contact_contact_id,
         constant_contact_registration_id = EXCLUDED.constant_contact_registration_id,

@@ -202,7 +202,7 @@ function renderUsers() {
   elements.usersCount.textContent = `${users.length} user${users.length === 1 ? "" : "s"}`;
 
   if (!users.length) {
-    elements.usersTableBody.innerHTML = `<tr><td colspan="6">No users synced yet.</td></tr>`;
+    elements.usersTableBody.innerHTML = `<tr><td colspan="5">No users synced yet.</td></tr>`;
     return;
   }
 
@@ -216,7 +216,6 @@ function renderUsers() {
       <td>${esc(user.degree || "-")}</td>
       <td>${esc(user.roleTitle || "-")}</td>
       <td>${esc(formatDate(user.lastLoginAt))}</td>
-      <td>${esc(formatDate(user.syncedAt || user.createdAt))}</td>
     </tr>
   `).join("");
 }
