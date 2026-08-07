@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
-import { config, requireConfig } from "./config.js";
+import { config } from "./config.js";
 import { query } from "./db.js";
 import {
   clearSessionCookie,
@@ -35,15 +35,26 @@ import { isValidEmail, normalizeEmail, randomToken } from "./security.js";
 import { rateLimit } from "./rateLimit.js";
 import { applySchema } from "./schema.js";
 
-requireConfig(["databaseUrl", "sessionSecret"]);
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, "..");
 const app = express();
 const ADMIN_COOKIE = "vl_admin";
 
-if (config.nodeEnv === "production" && config.databaseUrl) {
-  await applySchema();
+let schemaReady = false;
+let schemaError = null;
+async function ensureSchema() {
+  if (schemaReady) return;
+  if (!config.databaseUrl) {
+    throw Object.assign(new Error("Virtual Library database URL is not configured."), { status: 503 });
+  }
+  try {
+    await applySchema();
+    schemaReady = true;
+    schemaError = null;
+  } catch (error) {
+    schemaError = error;
+    throw error;
+  }
 }
 
 app.disable("x-powered-by");
@@ -164,6 +175,15 @@ app.use((request, response, next) => {
   response.status(403).json({ error: "Forbidden." });
 });
 
+async function requireDatabase(request, response, next) {
+  try {
+    await ensureSchema();
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 function publicUser(user) {
   return {
     email: user.email,
@@ -221,16 +241,18 @@ async function requireCurrentRegistration(request, response, next) {
 
 app.get("/api/health", async (request, response) => {
   try {
+    await ensureSchema();
     await query("SELECT 1");
     response.json({
       ok: true,
       service: "semcme-virtual-library",
       environment: config.nodeEnv,
     });
-  } catch {
+  } catch (error) {
     response.status(503).json({
       ok: false,
       service: "semcme-virtual-library",
+      error: error.message,
     });
   }
 });
@@ -244,6 +266,7 @@ app.get("/api/public-settings", (request, response) => {
 
 app.post(
   "/api/request-magic-link",
+  requireDatabase,
   rateLimit({ windowMs: 15 * 60 * 1000, max: 5, keyPrefix: "vl-magic-link" }),
   async (request, response, next) => {
     try {
@@ -286,7 +309,7 @@ app.post(
   },
 );
 
-app.get("/api/verify-magic-link", async (request, response, next) => {
+app.get("/api/verify-magic-link", requireDatabase, async (request, response, next) => {
   try {
     const token = String(request.query.token || "");
     const user = token ? await consumeMagicLink(token) : null;
@@ -313,6 +336,7 @@ app.get("/api/verify-magic-link", async (request, response, next) => {
 
 app.get(
   "/api/me",
+  requireDatabase,
   requireSession,
   requireCurrentRegistration,
   (request, response) => {
@@ -320,7 +344,7 @@ app.get(
   },
 );
 
-app.post("/api/logout", async (request, response, next) => {
+app.post("/api/logout", requireDatabase, async (request, response, next) => {
   try {
     await revokeSession(request.cookies?.[SESSION_COOKIE]);
     clearSessionCookie(response);
@@ -334,7 +358,7 @@ app.get(["/admin", "/admin/"], (request, response) => {
   response.sendFile(path.join(rootDir, "admin.html"));
 });
 
-app.post("/api/admin/login", (request, response) => {
+app.post("/api/admin/login", requireDatabase, (request, response) => {
   const username = String(request.body?.username || "");
   const password = String(request.body?.password || "");
   if (!config.adminUsername || !config.adminPassword) {
@@ -349,12 +373,12 @@ app.post("/api/admin/login", (request, response) => {
   response.json({ ok: true });
 });
 
-app.post("/api/admin/logout", (request, response) => {
+app.post("/api/admin/logout", requireDatabase, (request, response) => {
   clearAdminCookie(response);
   response.json({ ok: true });
 });
 
-app.get("/api/admin/me", requireAdmin, (request, response) => {
+app.get("/api/admin/me", requireDatabase, requireAdmin, (request, response) => {
   response.json({ ok: true });
 });
 
@@ -382,7 +406,7 @@ function publicAdminLibrary(sections) {
   };
 }
 
-app.get("/api/admin/library", requireAdmin, async (request, response, next) => {
+app.get("/api/admin/library", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
     response.json(publicAdminLibrary(await getLibraryContent({ includeHidden: true })));
   } catch (error) {
@@ -390,7 +414,7 @@ app.get("/api/admin/library", requireAdmin, async (request, response, next) => {
   }
 });
 
-app.post("/api/admin/library/import-source", requireAdmin, async (request, response, next) => {
+app.post("/api/admin/library/import-source", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
     const current = await getVirtualLibrary({ force: true });
     for (const [sectionIndex, section] of current.sections.entries()) {
@@ -420,7 +444,7 @@ app.post("/api/admin/library/import-source", requireAdmin, async (request, respo
   }
 });
 
-app.post("/api/admin/library/sections", requireAdmin, async (request, response, next) => {
+app.post("/api/admin/library/sections", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
     const section = await saveLibrarySection(request.body || {});
     clearLibraryCache();
@@ -430,7 +454,7 @@ app.post("/api/admin/library/sections", requireAdmin, async (request, response, 
   }
 });
 
-app.put("/api/admin/library/sections/:id", requireAdmin, async (request, response, next) => {
+app.put("/api/admin/library/sections/:id", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
     const section = await saveLibrarySection({ ...(request.body || {}), id: request.params.id });
     clearLibraryCache();
@@ -440,7 +464,7 @@ app.put("/api/admin/library/sections/:id", requireAdmin, async (request, respons
   }
 });
 
-app.delete("/api/admin/library/sections/:id", requireAdmin, async (request, response, next) => {
+app.delete("/api/admin/library/sections/:id", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
     await deleteLibrarySection(request.params.id);
     clearLibraryCache();
@@ -450,7 +474,7 @@ app.delete("/api/admin/library/sections/:id", requireAdmin, async (request, resp
   }
 });
 
-app.post("/api/admin/library/items", requireAdmin, async (request, response, next) => {
+app.post("/api/admin/library/items", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
     const item = await saveLibraryItem(request.body || {});
     clearLibraryCache();
@@ -460,7 +484,7 @@ app.post("/api/admin/library/items", requireAdmin, async (request, response, nex
   }
 });
 
-app.put("/api/admin/library/items/:id", requireAdmin, async (request, response, next) => {
+app.put("/api/admin/library/items/:id", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
     const item = await saveLibraryItem({ ...(request.body || {}), id: request.params.id });
     clearLibraryCache();
@@ -470,7 +494,7 @@ app.put("/api/admin/library/items/:id", requireAdmin, async (request, response, 
   }
 });
 
-app.delete("/api/admin/library/items/:id", requireAdmin, async (request, response, next) => {
+app.delete("/api/admin/library/items/:id", requireDatabase, requireAdmin, async (request, response, next) => {
   try {
     await deleteLibraryItem(request.params.id);
     clearLibraryCache();
@@ -482,6 +506,7 @@ app.delete("/api/admin/library/items/:id", requireAdmin, async (request, respons
 
 app.get(
   "/api/library",
+  requireDatabase,
   requireSession,
   requireCurrentRegistration,
   async (request, response, next) => {
