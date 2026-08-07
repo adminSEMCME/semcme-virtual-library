@@ -7,9 +7,6 @@
     }
   ],
   "routes": [
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/styles.css", "dest": "/styles.css" },
-    { "src": "/app.js", "dest": "/app.js" },
     { "src": "/(.*)", "dest": "/server/server.js" }
   ]
 }
