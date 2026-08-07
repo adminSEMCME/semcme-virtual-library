@@ -8,6 +8,7 @@ const TOKEN_URL = "https://authz.constantcontact.com/oauth2/default/v1/token";
 let accessToken = config.constantContact.accessToken;
 let refreshToken = config.constantContact.refreshToken;
 let loadedStoredTokens = false;
+const resolvedTrackKeys = new Map();
 
 export class ConstantContactError extends Error {
   constructor(message, { status = 502, cause } = {}) {
@@ -300,23 +301,66 @@ function mapRegistration(record, program) {
   };
 }
 
-function registrationMatchesEmail(record, email) {
-  const mapped = mapRegistration(record, {
-    eventId: config.constantContact.eventId,
-    trackKey: config.constantContact.trackKey
-  });
+function registrationMatchesEmail(record, email, program) {
+  const mapped = mapRegistration(record, program);
   return mapped?.email === email;
+}
+
+function trackKeyFromTrack(track) {
+  return firstPresent(
+    track.track_key,
+    track.trackKey,
+    track.key,
+    track.id,
+    track.track_id,
+    track.registration_track_key,
+    track.registrationTrackKey
+  );
+}
+
+function trackListFromResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.records)) return data.records;
+  if (Array.isArray(data.tracks)) return data.tracks;
+  if (Array.isArray(data.registration_tracks)) return data.registration_tracks;
+  if (Array.isArray(data.results)) return data.results;
+  return [];
+}
+
+async function resolveTrackKey(eventId) {
+  if (config.constantContact.trackKey) return config.constantContact.trackKey;
+  if (resolvedTrackKeys.has(eventId)) return resolvedTrackKeys.get(eventId);
+
+  const response = await constantContactFetch(`/events/${encodeURIComponent(eventId)}/tracks`);
+  if (!response.ok) {
+    const body = await response.text();
+    throw new ConstantContactError(`Constant Contact event track lookup failed: ${response.status} ${body}`, { status: response.status });
+  }
+
+  const data = await response.json();
+  const tracks = trackListFromResponse(data);
+  const preferredTrack = tracks.find((track) => {
+    const status = String(firstPresent(track.status, track.registration_status, track.state) || "").toLowerCase();
+    return !status || ["active", "open", "published", "live"].includes(status);
+  }) || tracks[0];
+  const trackKey = preferredTrack ? trackKeyFromTrack(preferredTrack) : null;
+  if (!trackKey) {
+    throw new ConstantContactError("No Constant Contact registration track was found for the Virtual Library event.", { status: 503 });
+  }
+
+  resolvedTrackKeys.set(eventId, trackKey);
+  return trackKey;
 }
 
 export async function findVirtualLibraryRegistrationByEmail(email) {
   const normalizedEmail = normalizeEmail(email);
   const eventId = config.constantContact.eventId;
-  const trackKey = config.constantContact.trackKey;
 
-  if (!eventId || !trackKey) {
-    throw new ConstantContactError("Constant Contact Virtual Library event and track are not configured.", { status: 503 });
+  if (!eventId) {
+    throw new ConstantContactError("Constant Contact Virtual Library event is not configured.", { status: 503 });
   }
 
+  const trackKey = await resolveTrackKey(eventId);
   let cursor = null;
   const program = { eventId, trackKey };
 
@@ -335,7 +379,7 @@ export async function findVirtualLibraryRegistrationByEmail(email) {
 
     const data = await response.json();
     const records = data.records || data.registrations || [];
-    const match = records.find((record) => registrationMatchesEmail(record, normalizedEmail));
+    const match = records.find((record) => registrationMatchesEmail(record, normalizedEmail, program));
     if (match) return mapRegistration(match, program);
 
     cursor = data.next_cursor || null;

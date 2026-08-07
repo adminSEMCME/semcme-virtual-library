@@ -36,7 +36,7 @@ The admin page can:
 
 - Set `APP_BASE_URL` to the final deployed URL before sending emails.
 - Set `COOKIE_SECURE=true` and `TRUST_PROXY=true` behind a production proxy.
-- Add `CONSTANT_CONTACT_VIRTUAL_LIBRARY_EVENT_ID` and `CONSTANT_CONTACT_VIRTUAL_LIBRARY_TRACK_KEY` once the Constant Contact campaign is ready.
+- Add `CONSTANT_CONTACT_VIRTUAL_LIBRARY_EVENT_ID` once the Constant Contact campaign is ready. `CONSTANT_CONTACT_VIRTUAL_LIBRARY_TRACK_KEY` is optional when the event has a single registration track.
 - Use `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_USER=resend`, and a Virtual Library Resend API key as `SMTP_PASS`.
 - Without SMTP settings, sign-in links are logged to the server console for local testing.
 - You can reuse an existing SEMCME Postgres database. This project uses `vl_` table names to avoid conflicting with the other sites.
