@@ -338,6 +338,25 @@ async function fetchEventTracks(eventId) {
   return trackListFromResponse(await response.json());
 }
 
+async function fetchEventDefaultTrackKeys(eventId) {
+  const response = await constantContactFetch(`/events/${encodeURIComponent(eventId)}`);
+  if (!response.ok) {
+    const body = await response.text();
+    throw new ConstantContactError(`Constant Contact event details lookup failed: ${response.status} ${body}`, { status: response.status });
+  }
+
+  const event = await response.json();
+  const tracks = [
+    event.default_track,
+    event.registration_track,
+    event.track,
+    ...(Array.isArray(event.tracks) ? event.tracks : []),
+    ...(Array.isArray(event.registration_tracks) ? event.registration_tracks : [])
+  ].filter(Boolean);
+
+  return tracks.map((track) => trackKeyFromTrack(track)).filter(Boolean);
+}
+
 async function resolveTrackKeys(eventId) {
   if (resolvedTrackKeyLists.has(eventId)) return resolvedTrackKeyLists.get(eventId);
 
@@ -348,10 +367,20 @@ async function resolveTrackKeys(eventId) {
     return trackKeys;
   }
 
-  const tracks = await fetchEventTracks(eventId);
-  const discoveredTrackKeys = tracks
-    .map((track) => trackKeyFromTrack(track))
-    .filter(Boolean);
+  let discoveredTrackKeys = [];
+  try {
+    discoveredTrackKeys = await fetchEventDefaultTrackKeys(eventId);
+  } catch (error) {
+    if (![400, 404].includes(error.status)) throw error;
+  }
+
+  if (!discoveredTrackKeys.length) {
+    const tracks = await fetchEventTracks(eventId);
+    discoveredTrackKeys = tracks
+      .map((track) => trackKeyFromTrack(track))
+      .filter(Boolean);
+  }
+
   const trackKeys = [...new Set(discoveredTrackKeys)];
 
   if (!trackKeys.length) {
