@@ -342,11 +342,17 @@ async function resolveTrackKeys(eventId) {
   if (resolvedTrackKeyLists.has(eventId)) return resolvedTrackKeyLists.get(eventId);
 
   const configuredTrackKey = config.constantContact.trackKey;
+  if (configuredTrackKey) {
+    const trackKeys = [configuredTrackKey];
+    resolvedTrackKeyLists.set(eventId, trackKeys);
+    return trackKeys;
+  }
+
   const tracks = await fetchEventTracks(eventId);
   const discoveredTrackKeys = tracks
     .map((track) => trackKeyFromTrack(track))
     .filter(Boolean);
-  const trackKeys = [...new Set([configuredTrackKey, ...discoveredTrackKeys].filter(Boolean))];
+  const trackKeys = [...new Set(discoveredTrackKeys)];
 
   if (!trackKeys.length) {
     throw new ConstantContactError("No Constant Contact registration tracks were found for the Virtual Library event.", { status: 503 });
