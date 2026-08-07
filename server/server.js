@@ -50,6 +50,7 @@ const ADMIN_COOKIE = "vl_admin";
 const CC_OAUTH_STATE_COOKIE = "vl_cc_oauth_state";
 const CC_AUTHORIZE_URL = "https://authz.constantcontact.com/oauth2/default/v1/authorize";
 const CC_TOKEN_URL = "https://authz.constantcontact.com/oauth2/default/v1/token";
+const CC_OAUTH_SCOPES = ["account_read", "contact_data", "campaign_data", "offline_access"];
 
 let schemaReady = false;
 let schemaError = null;
@@ -189,7 +190,7 @@ function constantContactAuthorizationUrl(state) {
     client_id: config.constantContact.clientId || "",
     response_type: "code",
     redirect_uri: constantContactRedirectUri(),
-    scope: "account_read contact_data offline_access",
+    scope: CC_OAUTH_SCOPES.join(" "),
     state,
   });
   return `${CC_AUTHORIZE_URL}?${params}`;
