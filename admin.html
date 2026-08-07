@@ -46,8 +46,6 @@
           </div>
           <div class="header-actions">
             <button class="secondary-button" id="refreshButton" type="button">Refresh data</button>
-            <button class="secondary-button" id="syncUsersButton" type="button">Sync users</button>
-            <button class="secondary-button" id="importButton" type="button">Import original library</button>
             <button class="secondary-button" id="signOutButton" type="button">Sign out</button>
           </div>
         </header>
@@ -170,7 +168,10 @@
               <h2>Registered users</h2>
               <p>Users in the Virtual Library database. Sync users pulls registered Constant Contact attendees into this list.</p>
             </div>
-            <span id="usersCount">0 users</span>
+            <div class="panel-actions">
+              <span id="usersCount">0 users</span>
+              <button class="secondary-button" id="syncUsersButton" type="button">Sync users</button>
+            </div>
           </div>
           <div class="table-wrap">
             <table class="users-table">
@@ -191,6 +192,14 @@
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section class="panel reset-panel">
+          <div>
+            <h2>Reset library content</h2>
+            <p>This replaces the editable library sections and resources with the saved original Virtual Library content.</p>
+          </div>
+          <button class="danger-button solid-danger-button" id="importButton" type="button">Import original library</button>
         </section>
       </section>
     </main>

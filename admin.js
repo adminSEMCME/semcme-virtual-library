@@ -318,7 +318,7 @@ elements.syncUsersButton.addEventListener("click", async () => {
 });
 
 elements.importButton.addEventListener("click", async () => {
-  if (!confirm("Import the original library into the admin editor? This will add editable copies of the saved original sections and resources.")) return;
+  if (!confirm("Reset the editable library back to the saved original library? This will replace the current sections and resources shown in the admin editor.")) return;
   setBusy(elements.importButton, true, "Importing...");
   try {
     const data = await requestJson("/api/admin/library/import-source", { method: "POST" });

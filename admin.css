@@ -275,6 +275,18 @@ button.is-loading::after {
   box-shadow: 0 10px 22px rgba(167, 61, 61, 0.16);
 }
 
+.solid-danger-button {
+  border-color: var(--red);
+  background: var(--red);
+  color: #fff;
+}
+
+.solid-danger-button:hover:not(:disabled) {
+  background: #8f1d15;
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(180, 35, 24, 0.18);
+}
+
 .dashboard-header {
   display: flex;
   align-items: flex-end;
@@ -319,6 +331,20 @@ button.is-loading::after {
   color: var(--muted);
   font-size: 13px;
   font-weight: 900;
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.panel-actions > span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .posted-panel,
@@ -605,6 +631,22 @@ button.is-loading::after {
   overflow-wrap: anywhere;
 }
 
+.reset-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-color: #f0b6b0;
+  background: #fff8f7;
+}
+
+.reset-panel p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 @media (max-width: 820px) {
   .utility-bar {
     height: auto;
@@ -638,8 +680,15 @@ button.is-loading::after {
   }
 
   .panel-heading-row,
-  .users-panel .panel-heading-row {
+  .users-panel .panel-heading-row,
+  .panel-actions,
+  .reset-panel {
     display: grid;
     padding: 20px;
+  }
+
+  .panel-actions,
+  .reset-panel {
+    padding: 0;
   }
 }
