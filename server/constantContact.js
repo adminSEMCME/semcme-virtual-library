@@ -9,6 +9,7 @@ let accessToken = config.constantContact.accessToken;
 let refreshToken = config.constantContact.refreshToken;
 let loadedStoredTokens = false;
 const resolvedTrackKeyLists = new Map();
+let contactCustomFieldDefinitionsCache = null;
 
 export class ConstantContactError extends Error {
   constructor(message, { status = 502, cause } = {}) {
@@ -151,6 +152,91 @@ function fieldValue(field) {
     return String(value.label || value.name || value.value || "").trim();
   }
   return String(value || "").trim();
+}
+
+function customFieldId(field) {
+  if (!field || typeof field !== "object") return "";
+  return String(
+    field.custom_field_id ||
+      field.customFieldId ||
+      field.field_id ||
+      field.fieldId ||
+      field.id ||
+      ""
+  ).trim();
+}
+
+async function contactCustomFieldDefinitions() {
+  if (contactCustomFieldDefinitionsCache) return contactCustomFieldDefinitionsCache;
+
+  const definitions = new Map();
+  let path = "/contact_custom_fields?limit=100";
+
+  try {
+    for (let page = 0; path && page < 10; page += 1) {
+      const response = await constantContactFetch(path);
+      if (!response.ok) break;
+
+      const data = await response.json();
+      const fields = data.custom_fields || data.records || [];
+      fields.forEach((field) => {
+        const id = customFieldId(field);
+        if (!id) return;
+
+        const choices = new Map();
+        (field.choices || field.options || field.values || []).forEach((choice) => {
+          const choiceId = String(choice.choice_id || choice.id || choice.value || "").trim();
+          const choiceLabel = String(choice.choice_label || choice.label || choice.name || choice.value || "").trim();
+          if (choiceId && choiceLabel) choices.set(choiceId, choiceLabel);
+        });
+
+        definitions.set(id, {
+          id,
+          label: String(field.label || field.name || field.display_name || "").trim(),
+          name: String(field.name || field.label || field.display_name || "").trim(),
+          choices
+        });
+      });
+
+      const nextHref = data.next_cursor || data._links?.next?.href || data.links?.next?.href || null;
+      path = nextHref
+        ? (String(nextHref).startsWith("http") || String(nextHref).startsWith("/")
+          ? normalizeApiPath(nextHref)
+          : `/contact_custom_fields?limit=100&cursor=${encodeURIComponent(nextHref)}`)
+        : "";
+    }
+  } catch {
+    // Custom field labels are helpful but not required for syncing users.
+  }
+
+  contactCustomFieldDefinitionsCache = definitions;
+  return definitions;
+}
+
+async function decorateContactCustomFields(contact) {
+  const definitions = await contactCustomFieldDefinitions();
+  const decorate = (field) => {
+    const id = customFieldId(field);
+    const definition = definitions.get(id);
+    if (!definition) return field;
+
+    const rawValue = fieldValue(field);
+    const value = definition.choices.get(rawValue) || rawValue;
+    return {
+      ...field,
+      label: field.label || definition.label,
+      name: field.name || definition.name,
+      value
+    };
+  };
+
+  const customFields = contact.custom_fields || contact.customFields || contact.contact_custom_fields || contact.contactCustomFields;
+  if (!Array.isArray(customFields)) return contact;
+
+  return {
+    ...contact,
+    custom_fields: customFields.map(decorate)
+  };
 }
 
 function labelMatches(label, candidates) {
@@ -310,6 +396,107 @@ function mapRegistration(record, program) {
 function registrationMatchesEmail(record, email, program) {
   const mapped = mapRegistration(record, program);
   return mapped?.email === email;
+}
+
+function registrationNeedsDetail(registration) {
+  return !registration ||
+    !registration.memberInstitution ||
+    !registration.degree ||
+    !registration.roleTitle;
+}
+
+async function fetchVirtualLibraryRegistrationDetail(registration) {
+  if (!registration?.registrationId) return registration;
+
+  const eventId = registration.eventId || config.constantContact.eventId;
+  const trackKey = registration.trackKey || config.constantContact.trackKey;
+  const registrationId = encodeURIComponent(registration.registrationId);
+  const paths = [
+    trackKey ? `/events/${encodeURIComponent(eventId)}/tracks/${encodeURIComponent(trackKey)}/registrations/${registrationId}` : "",
+    `/events/${encodeURIComponent(eventId)}/registrations/${registrationId}`
+  ].filter(Boolean);
+
+  for (const path of paths) {
+    const response = await constantContactFetch(path);
+    if (response.ok) {
+      const record = await response.json();
+      return mapRegistration({ ...registration.rawData, ...record }, {
+        eventId,
+        trackKey
+      }) || registration;
+    }
+
+    if (![404, 405].includes(response.status)) {
+      const body = await response.text();
+      console.warn(`Constant Contact registration detail lookup skipped: ${response.status} ${body}`);
+      return registration;
+    }
+  }
+
+  return registration;
+}
+
+async function fetchVirtualLibraryContactDetail(registration) {
+  if (!registration?.contactId) return registration;
+
+  const params = new URLSearchParams({ include: "custom_fields" });
+  const response = await constantContactFetch(`/contacts/${encodeURIComponent(registration.contactId)}?${params}`);
+  if (!response.ok) {
+    if ([404, 405].includes(response.status)) return registration;
+    const body = await response.text();
+    console.warn(`Constant Contact contact detail lookup skipped: ${response.status} ${body}`);
+    return registration;
+  }
+
+  const contact = await decorateContactCustomFields(await response.json());
+  const mergedRecord = {
+    ...registration.rawData,
+    contact: {
+      ...(registration.rawData?.contact || {}),
+      ...contact
+    },
+    contact_detail: contact
+  };
+  return mapRegistration(mergedRecord, {
+    eventId: registration.eventId || config.constantContact.eventId,
+    trackKey: registration.trackKey || config.constantContact.trackKey
+  }) || registration;
+}
+
+function mergeRegistrationDetails(base, detail) {
+  return {
+    ...base,
+    ...detail,
+    fullName: detail.fullName || base.fullName,
+    firstName: detail.firstName || base.firstName,
+    lastName: detail.lastName || base.lastName,
+    memberInstitution: detail.memberInstitution || base.memberInstitution,
+    organization: detail.organization || base.organization,
+    degree: detail.degree || base.degree,
+    roleTitle: detail.roleTitle || base.roleTitle,
+    specialty: detail.specialty || base.specialty,
+    contactId: detail.contactId || base.contactId,
+    registrationId: detail.registrationId || base.registrationId,
+    eventId: detail.eventId || base.eventId,
+    trackKey: detail.trackKey || base.trackKey,
+    rawData: {
+      ...(base.rawData || {}),
+      ...(detail.rawData || {})
+    }
+  };
+}
+
+export async function withVirtualLibraryRegistrationDetails(registration) {
+  if (!registrationNeedsDetail(registration)) return registration;
+
+  let enriched = registration;
+  const registrationDetail = await fetchVirtualLibraryRegistrationDetail(enriched);
+  enriched = mergeRegistrationDetails(enriched, registrationDetail);
+  if (!registrationNeedsDetail(enriched)) return enriched;
+
+  const contactDetail = await fetchVirtualLibraryContactDetail(enriched);
+  enriched = mergeRegistrationDetails(enriched, contactDetail);
+  return enriched;
 }
 
 function trackKeyFromTrack(track) {

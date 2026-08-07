@@ -17,6 +17,7 @@ const elements = {
   loginMessage: $("#loginMessage"),
   dashboardMessage: $("#dashboardMessage"),
   refreshButton: $("#refreshButton"),
+  reconnectConstantContactButton: $("#reconnectConstantContactButton"),
   syncUsersButton: $("#syncUsersButton"),
   importButton: $("#importButton"),
   signOutButton: $("#signOutButton"),
@@ -311,7 +312,7 @@ elements.syncUsersButton.addEventListener("click", async () => {
     renderUsers();
     const registrationsFound = data.registrationsFound ?? data.synced ?? 0;
     message(
-      `Synced ${data.synced || 0} registered user${data.synced === 1 ? "" : "s"} from Constant Contact. Found ${registrationsFound} registration${registrationsFound === 1 ? "" : "s"} across ${data.tracksChecked || 1} track${data.tracksChecked === 1 ? "" : "s"}.`,
+      `Synced ${data.synced || 0} registered user${data.synced === 1 ? "" : "s"} from Constant Contact. Found ${registrationsFound} registration${registrationsFound === 1 ? "" : "s"} across ${data.tracksChecked || 1} track${data.tracksChecked === 1 ? "" : "s"}. Profile details found: ${data.institutionsFound || 0} institution${data.institutionsFound === 1 ? "" : "s"}, ${data.degreesFound || 0} degree${data.degreesFound === 1 ? "" : "s"}, ${data.rolesFound || 0} role/title${data.rolesFound === 1 ? "" : "s"}.`,
       data.synced ? "success" : "error",
     );
   } catch (error) {
@@ -319,6 +320,10 @@ elements.syncUsersButton.addEventListener("click", async () => {
   } finally {
     setBusy(elements.syncUsersButton, false, "Sync users");
   }
+});
+
+elements.reconnectConstantContactButton.addEventListener("click", () => {
+  window.location.href = "/api/admin/constant-contact/connect";
 });
 
 elements.importButton.addEventListener("click", async () => {

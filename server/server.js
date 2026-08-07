@@ -16,6 +16,7 @@ import {
   ConstantContactError,
   listVirtualLibraryRegistrations,
   saveConstantContactTokens,
+  withVirtualLibraryRegistrationDetails,
 } from "./constantContact.js";
 import { sendMagicLinkEmail } from "./mailer.js";
 import {
@@ -303,14 +304,18 @@ function shouldRecheckRegistration(user) {
   );
 }
 
+function userHasProfileDetails(user) {
+  return Boolean(user?.member_institution && user?.degree && user?.role_title);
+}
+
 async function resolveRegisteredUser(email) {
   const existing = await findUserByEmail(email);
-  if (existing) return existing;
+  if (existing && userHasProfileDetails(existing)) return existing;
 
   const registration = await findVirtualLibraryRegistrationByEmail(email);
-  if (!registration) return null;
+  if (!registration) return existing || null;
 
-  return upsertUserFromRegistration(registration);
+  return upsertUserFromRegistration(await withVirtualLibraryRegistrationDetails(registration));
 }
 
 async function requireCurrentRegistration(request, response, next) {
@@ -331,7 +336,9 @@ async function requireCurrentRegistration(request, response, next) {
       return;
     }
 
-    request.user = await upsertUserFromRegistration(registration);
+    request.user = await upsertUserFromRegistration(
+      await withVirtualLibraryRegistrationDetails(registration),
+    );
     next();
   } catch (error) {
     next(error);
@@ -566,12 +573,22 @@ app.post("/api/admin/users/sync", requireDatabase, requireAdmin, async (request,
   try {
     const registrations = await listVirtualLibraryRegistrations();
     const users = [];
+    let institutionsFound = 0;
+    let degreesFound = 0;
+    let rolesFound = 0;
     for (const registration of registrations) {
-      users.push(await upsertUserFromRegistration(registration));
+      const detailedRegistration = await withVirtualLibraryRegistrationDetails(registration);
+      users.push(await upsertUserFromRegistration(detailedRegistration));
+      if (detailedRegistration.memberInstitution) institutionsFound += 1;
+      if (detailedRegistration.degree) degreesFound += 1;
+      if (detailedRegistration.roleTitle) rolesFound += 1;
     }
     response.json({
       synced: users.length,
       registrationsFound: registrations.recordsFound || registrations.length,
+      institutionsFound,
+      degreesFound,
+      rolesFound,
       tracksChecked: registrations.tracksChecked || 1,
       users: (await listUsers()).map(publicAdminUser),
     });
