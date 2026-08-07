@@ -226,6 +226,10 @@ async function exchangeConstantContactAuthorizationCode(code) {
   });
 }
 
+function constantContactFailureRedirect(reason = "unknown") {
+  return `/admin?cc=failed&reason=${encodeURIComponent(String(reason).slice(0, 240))}`;
+}
+
 function isSameOriginRequest(request) {
   const origin = request.get("origin");
   if (!origin) return true;
@@ -483,7 +487,7 @@ app.get("/api/admin/constant-contact/callback", requireDatabase, async (request,
   clearOAuthStateCookie(response);
 
   if (!expectedState || returnedState !== expectedState || !code) {
-    response.redirect("/admin?cc=failed");
+    response.redirect(constantContactFailureRedirect("The Constant Contact response could not be verified. Please start the reconnect again from this admin page."));
     return;
   }
 
@@ -492,7 +496,7 @@ app.get("/api/admin/constant-contact/callback", requireDatabase, async (request,
     response.redirect("/admin?cc=connected");
   } catch (error) {
     console.error("Constant Contact authorization failed:", error);
-    response.redirect("/admin?cc=failed");
+    response.redirect(constantContactFailureRedirect(error.message || "Constant Contact authorization failed."));
   }
 });
 
