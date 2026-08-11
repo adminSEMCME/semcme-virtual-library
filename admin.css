@@ -633,6 +633,11 @@ button.is-loading::after {
   overflow-x: auto;
 }
 
+.users-panel .table-wrap {
+  max-height: min(1040px, 72vh);
+  overflow: auto;
+}
+
 .users-table {
   width: 100%;
   border-collapse: collapse;
@@ -648,6 +653,9 @@ button.is-loading::after {
 }
 
 .users-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background: #eaf2f5;
   color: var(--muted);
   font-size: 12px;
