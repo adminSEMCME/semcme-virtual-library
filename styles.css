@@ -256,6 +256,7 @@ h2 {
 
 .support-note a {
   color: var(--blue);
+  font-weight: 600;
 }
 
 .login-panel {
