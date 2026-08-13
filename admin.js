@@ -76,9 +76,17 @@ function loginMessage(value) {
   elements.loginMessage.textContent = value || "";
 }
 
+let busyCount = 0;
+
+function setPageBusy(busy) {
+  busyCount = Math.max(0, busyCount + (busy ? 1 : -1));
+  document.body.classList.toggle("is-loading", busyCount > 0);
+}
+
 function setBusy(button, busy, text) {
   button.disabled = busy;
   button.classList.toggle("is-loading", busy);
+  setPageBusy(busy);
   if (text) {
     if (!button.dataset.originalText) button.dataset.originalText = button.textContent;
     button.textContent = busy ? text : button.dataset.originalText;
@@ -434,7 +442,14 @@ elements.clearUserFiltersButton.addEventListener("click", () => {
   renderUsers();
 });
 
-elements.exportUsersButton.addEventListener("click", exportVisibleUsers);
+elements.exportUsersButton.addEventListener("click", () => {
+  setBusy(elements.exportUsersButton, true, "Exporting...");
+  try {
+    exportVisibleUsers();
+  } finally {
+    setBusy(elements.exportUsersButton, false, "Export CSV");
+  }
+});
 
 elements.importButton.addEventListener("click", async () => {
   if (!confirm("Reset the editable library back to the saved original library? This will replace the current sections and resources shown in the admin editor.")) return;

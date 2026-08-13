@@ -28,6 +28,15 @@ body {
   font-family: Lato, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+body.is-loading,
+body.is-loading * {
+  cursor: wait !important;
+}
+
+button:disabled {
+  cursor: wait;
+}
+
 button,
 input,
 select,
@@ -604,7 +613,7 @@ button.is-loading::after {
 }
 
 .users-panel {
-  overflow: hidden;
+  overflow: visible;
   padding: 0;
 }
 
