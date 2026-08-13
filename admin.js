@@ -21,6 +21,7 @@ const elements = {
   refreshButton: $("#refreshButton"),
   reconnectConstantContactButton: $("#reconnectConstantContactButton"),
   syncUsersButton: $("#syncUsersButton"),
+  exportUsersButton: $("#exportUsersButton"),
   importButton: $("#importButton"),
   signOutButton: $("#signOutButton"),
   postedList: $("#postedList"),
@@ -275,6 +276,41 @@ function renderUsers() {
   `).join("");
 }
 
+function csvCell(value) {
+  const text = String(value ?? "").replace(/\r?\n/g, " ").trim();
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function downloadCsv(filename, rows) {
+  const blob = new Blob([rows.map((row) => row.map(csvCell).join(",")).join("\n")], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportVisibleUsers() {
+  const users = filteredUsers();
+  downloadCsv("virtual-library-users.csv", [
+    ["Name", "Email", "Institution", "Degree", "Role/Title", "Last login"],
+    ...users.map((user) => [
+      user.name || "",
+      user.email || "",
+      userInstitution(user) || "",
+      user.degree || "",
+      user.roleTitle || "",
+      formatDate(user.lastLoginAt),
+    ]),
+  ]);
+  message(`Exported ${users.length} user${users.length === 1 ? "" : "s"}.`, "success");
+}
+
 async function loadLibrary() {
   const data = await requestJson("/api/admin/library");
   state.sections = data.sections || [];
@@ -397,6 +433,8 @@ elements.clearUserFiltersButton.addEventListener("click", () => {
   elements.institutionFilterSelect.value = "";
   renderUsers();
 });
+
+elements.exportUsersButton.addEventListener("click", exportVisibleUsers);
 
 elements.importButton.addEventListener("click", async () => {
   if (!confirm("Reset the editable library back to the saved original library? This will replace the current sections and resources shown in the admin editor.")) return;

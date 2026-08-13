@@ -45,8 +45,8 @@
             <h1>Virtual Library</h1>
           </div>
           <div class="header-actions">
-            <button class="secondary-button" id="refreshButton" type="button">Refresh data</button>
-            <button class="secondary-button" id="signOutButton" type="button">Sign out</button>
+            <button class="secondary-button" id="refreshButton" type="button" data-tooltip="Reload the latest sections, resources, and users.">Refresh data</button>
+            <button class="secondary-button" id="signOutButton" type="button" data-tooltip="Sign out of the staff admin page.">Sign out</button>
           </div>
         </header>
 
@@ -72,36 +72,36 @@
             </div>
           </div>
           <form class="editor-form" id="sectionForm">
-            <label class="primary-select">
+            <label class="primary-select" data-tooltip="Choose the library section you want to review or edit.">
               Select section
               <select id="sectionSelect"></select>
             </label>
             <div class="field-grid">
-              <label>
+              <label data-tooltip="Public section title shown to users.">
                 Section name
                 <input id="sectionName" required />
               </label>
-              <label>
+              <label data-tooltip="Internal URL-safe name for this section.">
                 Slug
                 <input id="sectionSlug" />
               </label>
-              <label>
+              <label data-tooltip="Lower numbers show first on the site.">
                 Display order
                 <input id="sectionOrder" type="number" min="0" step="1" />
               </label>
-              <label class="check-field">
+              <label class="check-field" data-tooltip="Turn this off to hide the section without deleting it.">
                 <input id="sectionVisible" type="checkbox" checked />
                 Show on member site
               </label>
             </div>
-            <label>
+            <label data-tooltip="Optional description shown with this library section.">
               Description
               <textarea id="sectionDescription" rows="3"></textarea>
             </label>
             <div class="button-row">
-              <button class="primary-button" type="submit">Save section</button>
-              <button class="secondary-button" id="newSectionButton" type="button">New section</button>
-              <button class="danger-button" id="deleteSectionButton" type="button">Delete section</button>
+              <button class="primary-button" type="submit" data-tooltip="Save changes to this section.">Save section</button>
+              <button class="secondary-button" id="newSectionButton" type="button" data-tooltip="Clear the form to create a new section.">New section</button>
+              <button class="danger-button" id="deleteSectionButton" type="button" data-tooltip="Delete this section and its resources after confirmation.">Delete section</button>
             </div>
           </form>
         </section>
@@ -115,28 +115,28 @@
             </div>
           </div>
           <form class="editor-form" id="itemForm">
-            <label class="primary-select">
+            <label class="primary-select" data-tooltip="Choose an existing resource to edit, or create a new one.">
               Select resource
               <select id="itemSelect"></select>
             </label>
             <div class="field-grid">
-              <label>
+              <label data-tooltip="Clickable title users will see.">
                 Title
                 <input id="itemTitle" required />
               </label>
-              <label>
+              <label data-tooltip="Destination link for the video, PDF, or resource.">
                 URL
                 <input id="itemUrl" type="url" required />
               </label>
-              <label>
+              <label data-tooltip="Optional presenter or speaker name.">
                 Presenter
                 <input id="itemSpeaker" />
               </label>
-              <label>
+              <label data-tooltip="Optional display date shown with the resource.">
                 Date
                 <input id="itemDate" placeholder="October 3, 2025" />
               </label>
-              <label>
+              <label data-tooltip="Controls the resource label and display style.">
                 Type
                 <select id="itemType">
                   <option value="resource">Resource</option>
@@ -145,19 +145,19 @@
                   <option value="link">Link</option>
                 </select>
               </label>
-              <label>
+              <label data-tooltip="Lower numbers show first within the section.">
                 Display order
                 <input id="itemOrder" type="number" min="0" step="1" />
               </label>
-              <label class="check-field">
+              <label class="check-field" data-tooltip="Turn this off to hide the resource without deleting it.">
                 <input id="itemVisible" type="checkbox" checked />
                 Show on member site
               </label>
             </div>
             <div class="button-row">
-              <button class="primary-button" type="submit">Save resource</button>
-              <button class="secondary-button" id="newItemButton" type="button">New resource</button>
-              <button class="danger-button" id="deleteItemButton" type="button">Delete resource</button>
+              <button class="primary-button" type="submit" data-tooltip="Save changes to this resource.">Save resource</button>
+              <button class="secondary-button" id="newItemButton" type="button" data-tooltip="Clear the form to create a new resource.">New resource</button>
+              <button class="danger-button" id="deleteItemButton" type="button" data-tooltip="Delete this resource after confirmation.">Delete resource</button>
             </div>
           </form>
         </section>
@@ -170,22 +170,23 @@
             </div>
             <div class="panel-actions">
               <span id="usersCount">0 users</span>
-              <button class="secondary-button" id="reconnectConstantContactButton" type="button">Reconnect Constant Contact</button>
-              <button class="secondary-button" id="syncUsersButton" type="button">Sync users</button>
+              <button class="secondary-button" id="reconnectConstantContactButton" type="button" data-tooltip="Reconnect Constant Contact if user syncing stops working.">Reconnect Constant Contact</button>
+              <button class="secondary-button" id="syncUsersButton" type="button" data-tooltip="Pull registered Constant Contact attendees into this users table.">Sync users</button>
+              <button class="secondary-button" id="exportUsersButton" type="button" data-tooltip="Download the currently visible users as a CSV file.">Export CSV</button>
             </div>
           </div>
           <div class="user-filters">
-            <label>
+            <label data-tooltip="Search users by name, email, institution, degree, or role/title.">
               Search users
               <input id="userSearchInput" type="search" placeholder="Search name or email" autocomplete="off" />
             </label>
-            <label>
+            <label data-tooltip="Show users from one institution only.">
               Filter by institution
               <select id="institutionFilterSelect">
                 <option value="">All institutions</option>
               </select>
             </label>
-            <button class="secondary-button compact-button" id="clearUserFiltersButton" type="button">Clear filters</button>
+            <button class="secondary-button compact-button" id="clearUserFiltersButton" type="button" data-tooltip="Clear the user search and institution filter.">Clear filters</button>
           </div>
           <div class="table-wrap">
             <table class="users-table">
@@ -212,7 +213,7 @@
             <h2>Reset library content</h2>
             <p>This replaces the editable library sections and resources with the saved original Virtual Library content.</p>
           </div>
-          <button class="danger-button solid-danger-button" id="importButton" type="button">Import original library</button>
+          <button class="danger-button solid-danger-button" id="importButton" type="button" data-tooltip="Reset editable content back to the saved original library.">Import original library</button>
         </section>
       </section>
     </main>
