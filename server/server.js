@@ -694,15 +694,6 @@ app.get(
   },
 );
 
-app.get("/api/library-preview", async (request, response, next) => {
-  try {
-    const force = request.query.refresh === "true";
-    response.json(await getVirtualLibrary({ force }));
-  } catch (error) {
-    next(error);
-  }
-});
-
 app.get("*", (request, response) => {
   response.sendFile(path.join(rootDir, "index.html"));
 });
