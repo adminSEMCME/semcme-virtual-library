@@ -464,18 +464,6 @@ export const originalLibrarySections = [
         "url": "https://youtu.be/fUlXtXUk2l8"
       },
       {
-        "title": "Panel Discussion on Immigrant, Migrant & Refugee Health",
-        "speaker": "Robert Flora, MD, MBA, MPH & Aubin Whitmer, C-TAGME",
-        "date": "April 27, 2026",
-        "url": "https://youtu.be/m1UuVEuirYw"
-      },
-      {
-        "title": "Structural and Social Antecedents of Health – Virtual Training",
-        "speaker": "Robert Flora, MD, MBA, MPH & Aubin Whitmer, C-TAGME",
-        "date": "September 26, 2026",
-        "url": "https://youtu.be/m1UuVEuirYw"
-      },
-      {
         "title": "A Webinar on Disability Inclusion in GME",
         "speaker": "Lisa M. Meeks, PhD, MA",
         "date": "February 26, 2026",
@@ -592,12 +580,6 @@ export const originalLibrarySections = [
         "speaker": "Eric W. Ayers, MD, FACP, FAAP",
         "date": "May 20, 2024",
         "url": "https://youtu.be/EuZRhqQCrjo"
-      },
-      {
-        "title": "Contraception Updates in Adolescents and Legal Implications",
-        "speaker": "Sharon Marshall, MD",
-        "date": "April 15, 2024",
-        "url": "https://youtu.be/4SmcLwdULqE"
       },
       {
         "title": "Human Trafficking",
@@ -910,12 +892,6 @@ export const originalLibrarySections = [
         "speaker": "Heather Kirkpatrick, PhD, MS and Tonya Vanorder, PhD, MBA",
         "date": "February 12, 2025",
         "url": "https://youtu.be/XBmc4rDh6Rc"
-      },
-      {
-        "title": "The Mindful Healthcare Team",
-        "speaker": "Michael Kransner, MD, FACP",
-        "date": "January 10, 2025",
-        "url": "https://youtu.be/PVBE9ZHmyWI"
       },
       {
         "title": "Physician Impairment: A Personal Journey",

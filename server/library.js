@@ -7,6 +7,13 @@ const cache = {
   value: null
 };
 
+const blockedResourceTitles = new Set([
+  "panel discussion on immigrant, migrant & refugee health",
+  "structural and social antecedents of health – virtual training",
+  "contraception updates in adolescents and legal implications",
+  "the mindful healthcare team"
+]);
+
 export function clearLibraryCache() {
   cache.loadedAt = 0;
   cache.value = null;
@@ -48,15 +55,17 @@ function normalizeSections(sections, source) {
     .map((section) => ({
       name: section.name,
       id: section.slug || slugify(section.name),
-      items: (section.items || []).map((item, index) => ({
-        id: String(item.id || `${section.name}-${item.title}-${index}`).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
-        title: item.title,
-        speaker: item.speaker || "",
-        date: item.date || item.resource_date || "",
-        url: item.url,
-        type: item.type || item.itemType || item.item_type || "resource",
-        embedUrl: videoEmbedUrl(item.url)
-      }))
+      items: (section.items || [])
+        .filter((item) => !blockedResourceTitles.has(String(item.title || "").trim().toLowerCase()))
+        .map((item, index) => ({
+          id: String(item.id || `${section.name}-${item.title}-${index}`).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+          title: item.title,
+          speaker: item.speaker || "",
+          date: item.date || item.resource_date || "",
+          url: item.url,
+          type: item.type || item.itemType || item.item_type || "resource",
+          embedUrl: videoEmbedUrl(item.url)
+        }))
     }))
     .filter((section) => section.items.length);
 
