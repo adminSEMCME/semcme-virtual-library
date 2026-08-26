@@ -211,6 +211,16 @@ function formatDate(value) {
   });
 }
 
+function formatExportDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function normalize(value) {
   return String(value || "").trim().toLowerCase();
 }
@@ -261,12 +271,12 @@ function renderUsers() {
     : `${visibleUsers.length} of ${users.length} users`;
 
   if (!users.length) {
-    elements.usersTableBody.innerHTML = `<tr><td colspan="5">No users synced yet.</td></tr>`;
+    elements.usersTableBody.innerHTML = `<tr><td colspan="6">No users synced yet.</td></tr>`;
     return;
   }
 
   if (!visibleUsers.length) {
-    elements.usersTableBody.innerHTML = `<tr><td colspan="5">No users match the current filters.</td></tr>`;
+    elements.usersTableBody.innerHTML = `<tr><td colspan="6">No users match the current filters.</td></tr>`;
     return;
   }
 
@@ -279,6 +289,7 @@ function renderUsers() {
       <td>${esc(userInstitution(user) || "-")}</td>
       <td>${esc(user.degree || "-")}</td>
       <td>${esc(user.roleTitle || "-")}</td>
+      <td>${esc(formatDate(user.registeredAt))}</td>
       <td>${esc(formatDate(user.lastLoginAt))}</td>
     </tr>
   `).join("");
@@ -306,14 +317,15 @@ function downloadCsv(filename, rows) {
 function exportVisibleUsers() {
   const users = filteredUsers();
   downloadCsv("virtual-library-users.csv", [
-    ["Name", "Email", "Institution", "Degree", "Role/Title", "Last login"],
+    ["Name", "Email", "Institution", "Degree", "Role/Title", "Date registered", "Last login"],
     ...users.map((user) => [
       user.name || "",
       user.email || "",
       userInstitution(user) || "",
       user.degree || "",
       user.roleTitle || "",
-      formatDate(user.lastLoginAt),
+      formatExportDate(user.registeredAt),
+      formatExportDate(user.lastLoginAt),
     ]),
   ]);
   message(`Exported ${users.length} user${users.length === 1 ? "" : "s"}.`, "success");
