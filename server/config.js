@@ -55,8 +55,11 @@ export const config = {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
     from:
-      process.env.SMTP_FROM || "SEMCME Virtual Library <no-reply@semcme.org>",
+      process.env.SMTP_FROM ||
+      process.env.EMAIL_FROM ||
+      "SEMCME Virtual Library <no-reply@semcme.org>",
   },
+  resendApiKey: process.env.RESEND_API_KEY,
   cookieSecure:
     process.env.COOKIE_SECURE === "true" ||
     process.env.NODE_ENV === "production",

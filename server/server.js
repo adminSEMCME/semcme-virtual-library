@@ -399,7 +399,13 @@ app.post(
 
       const { token } = await createMagicLink(user.id, request);
       const magicLink = `${config.appBaseUrl.replace(/\/$/, "")}/?token=${encodeURIComponent(token)}`;
-      await sendMagicLinkEmail({ to: user.email, magicLink });
+      const delivery = await sendMagicLinkEmail({ to: user.email, magicLink });
+      if (delivery === "not_configured" && config.nodeEnv === "production") {
+        response
+          .status(503)
+          .json({ error: "Email delivery is not configured yet." });
+        return;
+      }
 
       response.json({
         message:

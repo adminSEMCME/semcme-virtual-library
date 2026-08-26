@@ -19,7 +19,7 @@ function escapeHtml(value) {
 }
 
 function getTransporter() {
-  if (!config.smtp.host) return null;
+  if (!config.smtp.host || !config.smtp.user || !config.smtp.pass) return null;
   if (transporter) return transporter;
 
   const options = {
@@ -28,12 +28,10 @@ function getTransporter() {
     secure: config.smtp.secure
   };
 
-  if (config.smtp.user && config.smtp.pass) {
-    options.auth = {
-      user: config.smtp.user,
-      pass: config.smtp.pass
-    };
-  }
+  options.auth = {
+    user: config.smtp.user,
+    pass: config.smtp.pass
+  };
 
   transporter = nodemailer.createTransport(options);
   return transporter;
@@ -128,20 +126,48 @@ export async function sendMagicLinkEmail({ to, magicLink }) {
   const email = buildMagicLinkEmail({ magicLink });
   const activeTransporter = getTransporter();
 
-  if (!activeTransporter) {
-    console.log(`Virtual Library magic link for ${to}: ${magicLink}`);
-    return;
+  if (activeTransporter) {
+    await activeTransporter.sendMail({
+      from: config.smtp.from,
+      to,
+      subject: email.subject,
+      text: email.text,
+      html: email.html,
+      attachments: email.attachments,
+      headers: {
+        "X-Auto-Response-Suppress": "All"
+      }
+    });
+    console.log(`SMTP accepted email to ${to}`);
+    return "sent";
   }
 
-  await activeTransporter.sendMail({
-    from: config.smtp.from,
-    to,
-    subject: email.subject,
-    text: email.text,
-    html: email.html,
-    attachments: email.attachments,
+  if (!config.resendApiKey) {
+    console.log(`Virtual Library magic link for ${to}: ${magicLink}`);
+    return "not_configured";
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
     headers: {
-      "X-Auto-Response-Suppress": "All"
-    }
+      Authorization: `Bearer ${config.resendApiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: config.smtp.from,
+      to: [to],
+      subject: email.subject,
+      text: email.text,
+      html: email.html
+    })
   });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data.message || data.error || data.name || "";
+    throw new Error(
+      `Email provider returned ${response.status}${detail ? `: ${detail}` : ""}`,
+    );
+  }
+  if (data.id) console.log(`Resend accepted email ${data.id} to ${to}`);
+  return "sent";
 }

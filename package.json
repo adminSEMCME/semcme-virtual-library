@@ -13,7 +13,7 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^8.0.10",
     "pg": "^8.13.1"
   }
 }
